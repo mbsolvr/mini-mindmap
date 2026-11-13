@@ -468,6 +468,13 @@ export default function App() {
     [],
   );
 
+  useEffect(() => {
+    dragCancel();
+    panRef.current = null;
+    setMarquee(null);
+    setPanning(false);
+  }, [doc]);
+
   useTopicFocus({
     selected,
     viewKey,

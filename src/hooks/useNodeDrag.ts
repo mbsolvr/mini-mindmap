@@ -21,6 +21,7 @@ type Drag = {
   target: DropTarget | null;
   tab: number;
   viewKey: object;
+  map: MapContent;
 };
 interface Options {
   workspace: Workspace;
@@ -129,6 +130,7 @@ export function useNodeDrag({
       target: null,
       tab: ws.active,
       viewKey: tabViewKey(map),
+      map,
     };
     setSelected(key);
     setSelectedRelation(null);
@@ -136,6 +138,10 @@ export function useNodeDrag({
   function dragMove(event: React.PointerEvent<HTMLElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointer !== event.pointerId) return;
+    if (workspaceRef.current.tabs[workspaceRef.current.active] !== drag.map) {
+      dragCancel();
+      return;
+    }
     if (
       !drag.moved &&
       Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5
@@ -235,6 +241,10 @@ export function useNodeDrag({
   function dragEnd(event: React.PointerEvent<HTMLElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointer !== event.pointerId) return;
+    if (workspaceRef.current.tabs[workspaceRef.current.active] !== drag.map) {
+      dragCancel();
+      return;
+    }
     dragRef.current = null;
     setDropTarget(null);
     setCanDetach(false);
