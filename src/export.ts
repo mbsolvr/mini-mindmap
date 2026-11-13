@@ -391,7 +391,7 @@ export function makeSvg(map: HTMLElement, canvas: HTMLElement, zoom: number) {
       ),
     );
   }
-  return { svg: new XMLSerializer().serializeToString(svg), width, height };
+  return { svg: new XMLSerializer().serializeToString(svg).replace(/[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu, "\uFFFD"), width, height };
 }
 
 export async function pngBase64(

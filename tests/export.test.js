@@ -45,5 +45,7 @@ test("SVG export preserves every line of node text", () => {
     assert.deepEqual(underline.attributes, { x1: "32", y1: "71", x2: "132", y2: "71", stroke: "#123456", "stroke-width": "2" });
     assert.equal(svg.children[2].children.find(child => child.tag === "text").attributes["text-decoration"], "underline");
     assert.throws(() => makeSvg({ ...map, querySelector: () => null }, {}, 1), /incomplete/);
+    globalThis.XMLSerializer = class { serializeToString() { return "<svg>ok\u0001\u0000\uD800\uFFFE\n中文😀</svg>"; } };
+    assert.equal(makeSvg(map, {}, 1).svg, "<svg>ok\uFFFD\uFFFD\uFFFD\uFFFD\n中文😀</svg>");
   } finally { Object.assign(globalThis, previous); }
 });
