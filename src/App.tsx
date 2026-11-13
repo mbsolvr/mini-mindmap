@@ -500,7 +500,7 @@ export default function App() {
     key: handleGlobalKey,
   };
   function handleGlobalKey(event: KeyboardEvent) {
-    if (closeTarget || confirmation || settingsOpen) return;
+    if (event.defaultPrevented || closeTarget || confirmation || settingsOpen) return;
     if (event.isComposing || event.keyCode === 229 || composingRef.current)
       return;
     const modifier = event.ctrlKey || event.metaKey;

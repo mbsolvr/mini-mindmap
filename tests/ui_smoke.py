@@ -536,9 +536,14 @@ def run():
             script("const el = [...document.querySelectorAll('.node textarea')].find(x => x.value === 'Beta').closest('.node'); el.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, button:0}))")
             wait_for(lambda: script("return !!document.querySelector('.relation-hit')"), 'connection')
             script("document.querySelector('.relation-hit').dispatchEvent(new MouseEvent('dblclick', {bubbles:true}))")
+            topic_count = script("return document.querySelectorAll('.node').length")
+            assert script("""const e=document.querySelector('.relation-editor');
+              const key=new KeyboardEvent('keydown',{key:'Enter',keyCode:229,isComposing:true,bubbles:true,cancelable:true});
+              e.dispatchEvent(key); return document.activeElement===e && !key.defaultPrevented;"""), 'IME Enter must not finish connection editing'
             keys('.relation-editor', 'Connection')
             keys('.relation-editor', '\ue007')
             wait_for(lambda: script("return document.querySelector('.relation-label')?.textContent") == 'Connection', 'connection label')
+            assert script("return document.querySelectorAll('.node').length") == topic_count, 'connection Enter must not add topics'
             # Real pointer gestures at 110% zoom: preview, one-step undo/redo, both handles, and Escape.
             script("document.querySelector('.relation-hit').dispatchEvent(new MouseEvent('click',{bubbles:true}))")
             wait_for(lambda: script("return document.querySelectorAll('.relation-controls circle').length") == 2, 'connection handles')

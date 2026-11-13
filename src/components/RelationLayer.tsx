@@ -304,13 +304,14 @@ export default function RelationLayer({
                   onChange={(e) => setEdit({ ...edit, value: e.target.value })}
                   onBlur={(e) => onSave(e.currentTarget.value)}
                   onKeyDown={(e) => {
-                    if (e.nativeEvent.isComposing) return;
+                    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
                     if (e.key === "Escape") {
                       e.preventDefault();
                       e.stopPropagation();
                       cancelEdit.current = true;
                       setEdit(null);
                     } else if (e.key === "Enter") {
+                      e.stopPropagation();
                       e.preventDefault();
                       e.currentTarget.blur();
                     }
