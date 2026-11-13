@@ -1,3 +1,4 @@
+import { treeIndex } from "./topicIndex.ts";
 import type { FloatingTopic, MapContent, MindNode } from "./types.ts";
 import {
   containsNode,
@@ -48,6 +49,7 @@ export function createSummary(
   const normalized = prepareSummaryTopics(map, topics);
   if (!normalized) return map;
   topics = normalized;
+  const selected = new Set(topics);
   let anchor:
     | { node: MindNode; parent: string | null; depth: number; floating: number }
     | undefined;
@@ -57,7 +59,7 @@ export function createSummary(
     depth: number,
     floating: number,
   ) {
-    if (topics.includes(node.key) && (!anchor || depth < anchor.depth))
+    if (selected.has(node.key) && (!anchor || depth < anchor.depth))
       anchor = { node, parent, depth, floating };
     node.children.forEach((child) =>
       visit(child, node.key, depth + 1, floating),
@@ -111,21 +113,8 @@ export function createSummary(
 }
 
 export function nodeDepth(map: MapContent, key: string): number {
-  function find(node: MindNode, depth: number): number {
-    if (node.key === key) return depth;
-    for (const child of node.children) {
-      const found = find(child, depth + 1);
-      if (found >= 0) return found;
-    }
-    return -1;
-  }
-  const root = find(map.tree, 0);
-  if (root >= 0) return root;
-  for (const topic of map.floatingTopics || []) {
-    const found = find(topic.tree, 0);
-    if (found >= 0) return found;
-  }
-  return 0;
+  const tree = treeForKey(map, key);
+  return tree ? treeIndex(tree).get(key)?.depth || 0 : 0;
 }
 
 export function alignSummaryLevels(map: MapContent): MapContent {
@@ -140,10 +129,7 @@ export function alignSummaryLevels(map: MapContent): MapContent {
     const topic = sourceTree && findNode(sourceTree, summary.key);
     if (!sourceTree || !targetTree || !topic || containsNode(topic, target))
       continue;
-    function height(node: MindNode): number {
-      return node.children.length ? 1 + Math.max(...node.children.map(height)) : 0;
-    }
-    if (nodeDepth(result, target) + height(topic) > 100) continue;
+    if (nodeDepth(result, target) + treeIndex(sourceTree).get(summary.key)!.height > 100) continue;
     const parent = findParent(targetTree, target);
     if (!parent && targetTree === result.tree) continue;
     function remove(node: MindNode): MindNode {

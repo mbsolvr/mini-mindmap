@@ -7,7 +7,7 @@ import { moveMapTopics } from "../src/mapMove.ts";
 import { toMarkdown } from "../src/markdown.ts";
 import JSZip from "jszip";
 import { createSummary, hasSummaryConflict, nodeDepth, prepareSummaryTopics, settleSummaries } from "../src/summaries.ts";
-import { findNode, treeForKey } from "../src/model.ts";
+import { findNode, treeForKey, updateNode } from "../src/model.ts";
 
 const node = (key, children = []) => ({ key, text: key, children });
 function example() {
@@ -122,7 +122,7 @@ test("moving topics cannot introduce conflicting summaries or opposite-side rang
   blocked = false;
   assert.equal(moveMapTopics(map, ["c", "d"], intoA, undefined, () => { blocked = true; }), map);
   assert.equal(blocked, true);
-  findNode(map.tree, "s1").children.push(node("child"));
+  map = { ...map, tree: updateNode(map.tree, "s1", (topic) => ({ ...topic, children: [...topic.children, node("child")] })) };
   blocked = false;
   assert.equal(moveMapTopics(map, ["c"], { ...intoA, key: "child" }, undefined, () => { blocked = true; }), map);
   assert.equal(blocked, true);
@@ -146,7 +146,7 @@ test("moving a topic into a summarized gap includes it in the same transaction",
 test("deleting the last members deletes their summary, children, and connections", () => {
   let map = { tree: node("root", [node("a"), node("b"), node("target")]) };
   map = createSummary(map, ["a", "b"], "s1", "One");
-  findNode(map.tree, "s1").children.push(node("child"));
+  map = { ...map, tree: updateNode(map.tree, "s1", (topic) => ({ ...topic, children: [...topic.children, node("child")] })) };
   map.tree.relations = [{ relKey: "r", from: "child", to: "target", label: "" }];
   const partial = removeMapTopics(map, new Set(["a"]));
   assert.ok(findNode(partial.tree, "s1"));

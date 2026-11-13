@@ -1,3 +1,4 @@
+import { treeIndex } from "../topicIndex.ts";
 import React, { useLayoutEffect, useRef, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { containsNode, findNode, tabViewKey, treeForKey } from "../model.ts";
@@ -81,7 +82,8 @@ export function useNodeDrag({
     if (!treeForKey(map, key) || key === map.tree.key || !mapRef.current)
       return;
     const requested = multiKeys.has(key) ? Array.from(multiKeys) : [key];
-    if (requested.some((item) => map.tree.summaries?.some((summary) => summary.key === item))) {
+    const summaryKeys = new Set(map.tree.summaries?.map((summary) => summary.key));
+    if (requested.some((item) => summaryKeys.has(item))) {
       if (!multiKeys.has(key)) setMultiKeys(new Set());
       setSelected(key);
       setSelectedRelation(null);
@@ -97,10 +99,11 @@ export function useNodeDrag({
     finishMotion();
     const keys = sources.map((node) => node.key),
       offsets = new Map<string, { x: number; y: number }>();
+    const keySet = new Set(keys);
     for (const card of mapRef.current.querySelectorAll<HTMLElement>(
       "[data-drop-key]",
     ))
-      if (card.dataset.dropKey && keys.includes(card.dataset.dropKey)) {
+      if (card.dataset.dropKey && keySet.has(card.dataset.dropKey)) {
         const root = map.floatingTopics?.some(
           (topic) => topic.tree.key === card.dataset.dropKey,
         )
@@ -286,16 +289,21 @@ export function useNodeDrag({
     }
     const sources = selectedMapTopics(map, drag.keys);
     const touchedKeys = [...drag.keys, ...(drag.target ? [drag.target.key] : [])];
+    const affected = new Set<string>();
+    for (const source of sources)
+      for (const key of treeIndex(source).keys()) affected.add(key);
+    for (const key of touchedKeys) {
+      const tree = treeForKey(map, key);
+      if (!tree) continue;
+      const index = treeIndex(tree);
+      let current: string | null = key;
+      while (current) {
+        affected.add(current);
+        current = index.get(current)?.parent || null;
+      }
+    }
     const touchesSummary = map.tree.summaries?.some((summary) =>
-      [summary.key, ...summary.topics].some((key) => {
-        const tree = treeForKey(map, key);
-        const node = tree && findNode(tree, key);
-        return (
-          node &&
-          (touchedKeys.some((key) => containsNode(node, key)) ||
-            sources.some((source) => containsNode(source, key)))
-        );
-      }),
+      [summary.key, ...summary.topics].some((key) => affected.has(key)),
     );
     // shortcut: image and summary drops skip motion until the native flicker is isolated.
     if (

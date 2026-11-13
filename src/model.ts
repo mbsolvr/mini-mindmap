@@ -1,3 +1,4 @@
+import { treeIndex, treeOwners } from "./topicIndex.ts";
 import type {
   MindNode,
   MapDocument,
@@ -111,32 +112,16 @@ export function setAllCollapsed(
   };
 }
 export function containsNode(node: MindNode, key: string): boolean {
-  return (
-    node.key === key || node.children.some((child) => containsNode(child, key))
-  );
+  return treeIndex(node).has(key);
 }
 export function treeForKey(map: MapContent, key: string): MindNode | null {
-  if (containsNode(map.tree, key)) return map.tree;
-  return (
-    map.floatingTopics?.find((topic) => containsNode(topic.tree, key))?.tree ||
-    null
-  );
+  return treeOwners(map).get(key) || null;
 }
 export function findParent(node: MindNode, key: string): string | null {
-  for (const child of node.children) {
-    if (child.key === key) return node.key;
-    const found = findParent(child, key);
-    if (found) return found;
-  }
-  return null;
+  return treeIndex(node).get(key)?.parent || null;
 }
 export function findNode(node: MindNode, key: string): MindNode | null {
-  if (node.key === key) return node;
-  for (const child of node.children) {
-    const found = findNode(child, key);
-    if (found) return found;
-  }
-  return null;
+  return treeIndex(node).get(key)?.node || null;
 }
 export function removeNode(tree: MindNode, key: string): MindNode {
   const parent = findParent(tree, key);

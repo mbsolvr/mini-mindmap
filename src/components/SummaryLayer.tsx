@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { verticalIndex } from "../selection.ts";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FloatingTopic, MindNode } from "../types.ts";
 import { useT } from "../i18n.ts";
 import MindNodeView from "./MindNode.tsx";
@@ -28,6 +29,7 @@ export default function SummaryLayer({
   onRemove,
 }: Props) {
   const t = useT();
+  const summaries = useMemo(() => new Map(tree.summaries?.map((item) => [item.key, item])), [tree.summaries]);
   const [positions, setPositions] = useState<
     { key: string; x: number; y: number; height: number; left: boolean }[]
   >([]);
@@ -89,6 +91,14 @@ export default function SummaryLayer({
         };
       });
       const present = measured.filter((item) => item !== null);
+      const obstacles = ordinaryBounds.map((rect) => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, index: -1, side: false }));
+      for (const item of present) {
+        const group = groupBounds.get(item.summary.key);
+        if (!group) continue;
+        for (const rect of [group.rect, group.content])
+          if (rect) obstacles.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, index: item.index, side: group.left });
+      }
+      const candidates = verticalIndex(obstacles);
       const next = present.flatMap((item) => {
         const { summary, index, bounds } = item;
         let right = Math.max(...bounds.map((r) => r.right));
@@ -101,16 +111,8 @@ export default function SummaryLayer({
           const center = top + Math.max(bottom - top, 26 * zoom) / 2;
           const halfHeight = content.height / 2;
           const upper = Math.min(top, center - halfHeight), lower = Math.max(bottom, center + halfHeight);
-          const obstacles = ordinaryBounds.slice();
-          for (const other of present) {
-            if (other.index >= index) continue;
-            const group = groupBounds.get(other.summary.key);
-            if (!group || group.left !== onLeft) continue;
-            obstacles.push(group.rect);
-            if (group.content) obstacles.push(group.content);
-          }
-          for (const rect of obstacles) {
-            if (rect.bottom <= upper || rect.top >= lower) continue;
+          for (const rect of candidates(upper, lower)) {
+            if (rect.index >= 0 && (rect.index >= index || rect.side !== onLeft)) continue;
             if (onLeft) left = Math.min(left, rect.left);
             else right = Math.max(right, rect.right);
           }
@@ -182,9 +184,7 @@ export default function SummaryLayer({
   return (
     <>
       {positions.map((position) => {
-        const summary = tree.summaries?.find(
-          (item) => item.key === position.key,
-        );
+        const summary = summaries.get(position.key);
         if (!summary) return null;
         const map = { tree, floatingTopics };
         const owner = treeForKey(map, summary.key);

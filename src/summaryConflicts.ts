@@ -12,7 +12,15 @@ type TopicInfo = {
   order: number;
 };
 
+const indexes = new WeakMap<MindNode, { floating: MapContent["floatingTopics"]; index: ReturnType<typeof buildSummaryIndex> }>();
 export function summaryIndex(map: MapContent) {
+  const cached = indexes.get(map.tree);
+  if (cached && cached.floating === map.floatingTopics) return cached.index;
+  const index = buildSummaryIndex(map);
+  indexes.set(map.tree, { floating: map.floatingTopics, index });
+  return index;
+}
+function buildSummaryIndex(map: MapContent) {
   const nodes = new Map<string, TopicInfo>();
   const groups = new Map<string, TopicInfo[]>();
   const summaryKeys = new Set(map.tree.summaries?.map((summary) => summary.key));
@@ -91,7 +99,8 @@ export function summaryIndex(map: MapContent) {
     const original = keys.filter((key) => selected.has(key));
     if (original.every((key, n) => !n || nodes.get(original[n - 1])!.order < nodes.get(key)!.order))
       return ordered;
-    return [...original, ...ordered.filter((key) => !keys.includes(key))];
+    const originalKeys = new Set(keys);
+    return [...original, ...ordered.filter((key) => !originalKeys.has(key))];
   }
   function oppositeSides(keys: string[]) {
     const sides = new Map<string, "left" | "right">();

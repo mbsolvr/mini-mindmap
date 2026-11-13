@@ -6,6 +6,7 @@ import {
   setRootBranchSides,
   treeForKey,
   updateNode,
+  sameSnapshot,
 } from "./model.ts";
 import type { MapContent, MindNode } from "./types.ts";
 import { hasSummaryConflict, settleSummaries } from "./summaries.ts";
@@ -44,10 +45,11 @@ export function moveMapTopics(
   onEmptySummary?: () => void,
   onSummaryConflict?: () => void,
 ): MapContent {
+  const summaryKeys = new Set(map.tree.summaries?.map((summary) => summary.key));
   if (
     !keys.length ||
     keys.includes(map.tree.key) ||
-    keys.some((key) => map.tree.summaries?.some((summary) => summary.key === key)) ||
+    keys.some((key) => summaryKeys.has(key)) ||
     keys.some((key) => !treeForKey(map, key))
   )
     return map;
@@ -216,5 +218,5 @@ export function moveMapTopics(
   )
     return map;
   const next = { ...map, tree, floatingTopics };
-  return JSON.stringify(next) === JSON.stringify(map) ? map : finish(next);
+  return sameSnapshot(next, map) ? map : finish(next);
 }
