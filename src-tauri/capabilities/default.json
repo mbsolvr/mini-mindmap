@@ -1,5 +1,5 @@
 {
   "identifier": "main",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-close", "core:window:allow-destroy", "core:window:allow-set-title"]
+  "permissions": ["core:default", "core:webview:allow-print", "core:window:allow-close", "core:window:allow-destroy", "core:window:allow-set-title"]
 }
