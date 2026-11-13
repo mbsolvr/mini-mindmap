@@ -15,16 +15,19 @@ export function isPlainEnter(
   );
 }
 
-export function adjacentNode(tree: MindNode, key: string, direction: string) {
+export function adjacentNode(tree: MindNode, key: string, direction: string, visibleKeys?: ReadonlySet<string>) {
   const node = findNode(tree, key);
-  if (!node) return null;
-  if (direction === "ArrowLeft") return findParent(tree, key);
+  if (!node || (visibleKeys && !visibleKeys.has(key))) return null;
+  if (direction === "ArrowLeft") {
+    const parent = findParent(tree, key);
+    return parent && (!visibleKeys || visibleKeys.has(parent)) ? parent : null;
+  }
   if (direction === "ArrowRight")
-    return node.collapsed ? null : node.children[0]?.key || null;
+    return node.collapsed ? null : node.children.find((child) => !visibleKeys || visibleKeys.has(child.key))?.key || null;
   if (direction !== "ArrowUp" && direction !== "ArrowDown") return null;
   const visible: string[] = [];
   function visit(current: MindNode) {
-    visible.push(current.key);
+    if (!visibleKeys || visibleKeys.has(current.key)) visible.push(current.key);
     if (!current.collapsed) current.children.forEach(visit);
   }
   visit(tree);

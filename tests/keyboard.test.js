@@ -56,3 +56,12 @@ test("global shortcuts commit editing before save and preserve local rename undo
     assert.deepEqual(calls, ['prevent', 'undo', 'prevent', 'redo']);
   } finally { Object.assign(globalThis, previous); }
 });
+
+test("navigation excludes hidden summary topics and their children in every direction", () => {
+  const map = { key: "r", children: [{ key: "s", children: [{ key: "child", children: [] }] }, { key: "b", children: [] }] };
+  const visible = new Set(["r", "b"]);
+  assert.equal(adjacentNode(map, "r", "ArrowRight", visible), "b");
+  assert.equal(adjacentNode(map, "r", "ArrowDown", visible), "b");
+  assert.equal(adjacentNode(map, "b", "ArrowUp", visible), "r");
+  assert.equal(adjacentNode(map, "s", "ArrowDown", visible), null);
+});

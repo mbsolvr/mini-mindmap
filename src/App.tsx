@@ -632,7 +632,9 @@ export default function App() {
       if (event.key === "ArrowRight" && node.collapsed && node.children.length)
         changeTree(selected, (n) => ({ ...n, collapsed: false }));
       else {
-        const next = adjacentNode(tree, selected, event.key);
+        const next = adjacentNode(tree, selected, event.key, new Set(
+          Array.from(inputs.current).filter(([, input]) => input.getClientRects().length > 0).map(([key]) => key),
+        ));
         if (next) selectOne(next);
       }
     }
