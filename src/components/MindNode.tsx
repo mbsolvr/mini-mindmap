@@ -196,13 +196,15 @@ export function MindNode({
             alt={node.text || t("Topic image")}
             width={imageSize?.width}
             height={imageSize?.height}
+            style={imageSize}
             draggable={false}
             onLoad={(event) => {
-              const { naturalWidth, naturalHeight } = event.currentTarget;
-              if (node.image && naturalWidth && naturalHeight)
+              const style = getComputedStyle(event.currentTarget),
+                width = parseFloat(style.width), height = parseFloat(style.height);
+              if (node.image && width && height)
                 imageSizes.set(node.image, {
-                  width: naturalWidth,
-                  height: naturalHeight,
+                  width,
+                  height,
                 });
             }}
             onPointerDown={(event) => {

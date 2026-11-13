@@ -515,7 +515,7 @@ def run():
             assert not script("return !!document.querySelector('.preview')"), 'dragging an image should not open preview'
             assert script("return window.__nodeMotionCalls") == 0, 'image moves should not animate'
             dimensions = script("const img=[...document.querySelectorAll('.node')].find(el=>el.querySelector('textarea')?.value==='Alpha').querySelector('img'), r=img.getBoundingClientRect(); return [img.getAttribute('width'),img.getAttribute('height'),r.width,r.height]")
-            assert dimensions[:2] == ['240', '160'] and abs(dimensions[2]-before_image[0]) < 0.1 and abs(dimensions[3]-before_image[1]) < 0.1, dimensions
+            assert abs(float(dimensions[0])-before_image[0]) < 0.1 and abs(float(dimensions[1])-before_image[1]) < 0.1 and abs(dimensions[2]-before_image[0]) < 0.1 and abs(dimensions[3]-before_image[1]) < 0.1, dimensions
             track_node_motion()
             points = script("""const a=[...document.querySelectorAll('.node')].find(el=>el.querySelector('textarea')?.value==='Beta').getBoundingClientRect();
               return [Math.round(a.x+a.width/2),Math.round(a.y+a.height/2),50,window.innerHeight-80];""")

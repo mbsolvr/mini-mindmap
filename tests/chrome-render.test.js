@@ -179,10 +179,13 @@ test("clicking an unselected image selects its node and opens its preview", asyn
 
   const image = imageOf(MindNode(props));
   assert.equal(image.props.width, undefined);
-  image.props.onLoad({ currentTarget: { naturalWidth: 320, naturalHeight: 180 } });
+  const previousStyle = globalThis.getComputedStyle;
+  globalThis.getComputedStyle = () => ({ width: "110px", height: "61.875px" });
+  image.props.onLoad({ currentTarget: { naturalWidth: 320, naturalHeight: 180, width: 110, height: 62 } });
+  globalThis.getComputedStyle = previousStyle;
   const remounted = imageOf(MindNode({ ...props, node: { ...props.node } }));
-  assert.equal(remounted.props.width, 320);
-  assert.equal(remounted.props.height, 180);
+  assert.equal(remounted.props.width, 110);
+  assert.equal(remounted.props.height, 61.875);
   const replaced = imageOf(MindNode({ ...props, node: { ...props.node, image: { src: "data:image/png;base64,BBBB" } } }));
   assert.equal(replaced.props.width, undefined);
 });
