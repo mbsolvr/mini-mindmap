@@ -9,7 +9,7 @@ async function loadComponentModule(name) {
   const file = new URL(`../src/components/${name}.tsx`, import.meta.url);
   const source = await readFile(file, "utf8");
   const compiled = await transform(source, { loader: "tsx", format: "esm" });
-  const code = (compiled.code.includes("import React") ? compiled.code : `import React from "react";\n${compiled.code}`).replaceAll('from "react"', `from "${import.meta.resolve("react")}"`).replace('import { useT } from "../i18n.ts";', 'const useT = () => text => text;').replace('import { MenuLabel } from "./AppMenu.tsx";', 'const MenuLabel = ({ label }) => React.createElement("span", null, label);').replaceAll('"../textStyle.ts"', `"${new URL("../src/textStyle.ts", import.meta.url).href}"`).replaceAll('"../summaries.ts"', `"${new URL("../src/summaries.ts", import.meta.url).href}"`);
+  const code = (compiled.code.includes("import React") ? compiled.code : `import React from "react";\n${compiled.code}`).replaceAll('from "react"', `from "${import.meta.resolve("react")}"`).replace('import { useT } from "../i18n.ts";', 'const useT = () => text => text;').replace('import { MenuLabel } from "./AppMenu.tsx";', 'const MenuLabel = ({ label }) => React.createElement("span", null, label);').replaceAll('"../contextMenu.ts"', `"${new URL("../src/contextMenu.ts", import.meta.url).href}"`).replaceAll('"../textStyle.ts"', `"${new URL("../src/textStyle.ts", import.meta.url).href}"`).replaceAll('"../summaries.ts"', `"${new URL("../src/summaries.ts", import.meta.url).href}"`);
   return import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
 }
 async function loadComponent(name) { return (await loadComponentModule(name)).default; }

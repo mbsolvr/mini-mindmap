@@ -31,8 +31,8 @@ export function useContextMenus({
     setCanvasContext(null);
     setContext({
       key,
-      x: Math.max(0, Math.min(x, window.innerWidth - 192)),
-      y: Math.max(0, Math.min(y, window.innerHeight - 250)),
+      x: x,
+      y: y,
     });
   }
   function openNoteMenu(key: string, x: number, y: number) {
@@ -42,8 +42,8 @@ export function useContextMenus({
     setCanvasContext(null);
     setNoteContext({
       key,
-      x: Math.max(0, Math.min(x, window.innerWidth - 192)),
-      y: Math.max(0, Math.min(y, window.innerHeight - 210)),
+      x: x,
+      y: y,
     });
   }
   function contextMenu(event: React.MouseEvent<HTMLDivElement>, key: string) {
@@ -66,8 +66,8 @@ export function useContextMenus({
     setNoteContext(null);
     closeRelationMenu();
     setCanvasContext({
-      x: Math.max(0, Math.min(event.clientX, innerWidth - 220)),
-      y: Math.max(0, Math.min(event.clientY, innerHeight - 180)),
+      x: event.clientX,
+      y: event.clientY,
       mapX: Math.max(
         -100000,
         Math.min(100000, (event.clientX - bounds.left) / zoom),

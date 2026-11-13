@@ -1,3 +1,4 @@
+import { fitContextMenu } from "./contextMenu.ts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useContextMenus } from "./hooks/useContextMenus.ts";
 import { useTopicFocus } from "./hooks/useTopicFocus.ts";
@@ -819,8 +820,8 @@ export default function App() {
                 key,
                 tab: workspaceRef.current.active,
                 viewKey,
-                x: Math.max(0, Math.min(x, window.innerWidth - 160)),
-                y: Math.max(0, Math.min(y, window.innerHeight - 85)),
+                x: x,
+                y: y,
               });
             },
           }}
@@ -953,6 +954,7 @@ export default function App() {
         />
         {canvasContext && (
           <div
+            ref={(menu) => fitContextMenu(menu)}
             className="context canvas-context"
             style={{ left: canvasContext.x, top: canvasContext.y }}
           >

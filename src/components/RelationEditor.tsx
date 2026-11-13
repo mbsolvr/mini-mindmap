@@ -1,3 +1,4 @@
+import { fitContextMenu } from "../contextMenu.ts";
 import type { Dispatch, SetStateAction } from "react";
 import type { RelationContext } from "../hooks/useRelations.ts";
 import { MenuLabel } from "./AppMenu.tsx";
@@ -20,6 +21,7 @@ export default function RelationEditor({
     <>
       {context && (
         <div
+          ref={(menu) => fitContextMenu(menu)}
           className="context relation-context"
           style={{ left: context.x, top: context.y }}
           onClick={(e) => e.stopPropagation()}

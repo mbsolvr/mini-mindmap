@@ -1,3 +1,4 @@
+import { fitContextMenu } from "../contextMenu.ts";
 import type { MindNode } from "../types.ts";
 import { useT } from "../i18n.ts";
 import { MenuLabel } from "./AppMenu.tsx";
@@ -36,6 +37,7 @@ export default function NodeContextMenu({
   sizes.sort((a, b) => a - b);
   return (
     <div
+      ref={(menu) => fitContextMenu(menu)}
       className="context"
       style={{ left: x, top: y }}
       onClick={(e) => e.stopPropagation()}
