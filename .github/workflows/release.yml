@@ -67,7 +67,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Mini Mindmap ${{ github.ref_name }}
-          releaseBody: 'See the attached files for each platform.'
+          generateReleaseNotes: true
           releaseDraft: true
           prerelease: false
           retryAttempts: '3'
