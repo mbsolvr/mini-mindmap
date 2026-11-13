@@ -140,6 +140,10 @@ export function alignSummaryLevels(map: MapContent): MapContent {
     const topic = sourceTree && findNode(sourceTree, summary.key);
     if (!sourceTree || !targetTree || !topic || containsNode(topic, target))
       continue;
+    function height(node: MindNode): number {
+      return node.children.length ? 1 + Math.max(...node.children.map(height)) : 0;
+    }
+    if (nodeDepth(result, target) + height(topic) > 100) continue;
     const parent = findParent(targetTree, target);
     if (!parent && targetTree === result.tree) continue;
     function remove(node: MindNode): MindNode {

@@ -300,3 +300,14 @@ test("moving a grouped topic between branches or onto the canvas preserves the m
   assert.deepEqual(detached.tree.summaries[0].topics, ["a", "b"]);
   assert.equal(nodeDepth(detached, "s"), nodeDepth(detached, "b"));
 });
+
+test("deleting a shallow member preserves a summary subtree when alignment would exceed depth 100", () => {
+  let deep = node("deep");
+  for (let i = 98; i >= 0; i--) deep = node(`level${i}`, [deep]);
+  const map = { tree: { ...node("root", [node("shallow"), deep, node("s", [node("s-child")])]), summaries: [{ key: "s", topics: ["shallow", "deep"] }] } };
+  const next = removeMapTopics(map, new Set(["shallow"]));
+  assert.equal(findNode(next.tree, "shallow"), null);
+  assert.equal(nodeDepth(next, "s"), 1);
+  assert.equal(nodeDepth(next, "s-child"), 2);
+  assert.deepEqual(next.tree.summaries[0].topics, ["deep"]);
+});
