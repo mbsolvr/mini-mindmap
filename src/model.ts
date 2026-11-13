@@ -123,28 +123,6 @@ export function findParent(node: MindNode, key: string): string | null {
 export function findNode(node: MindNode, key: string): MindNode | null {
   return treeIndex(node).get(key)?.node || null;
 }
-export function removeNode(tree: MindNode, key: string): MindNode {
-  const parent = findParent(tree, key);
-  const removed = findNode(tree, key);
-  if (!parent || !removed) return tree;
-  const next = updateNode(tree, parent, (node) => ({
-    ...node,
-    children: node.children.filter((child) => child.key !== key),
-  }));
-  if (!Array.isArray(next.relations)) return next;
-  const keys = new Set<string>();
-  function collect(node: MindNode) {
-    keys.add(node.key);
-    node.children.forEach(collect);
-  }
-  collect(removed);
-  const relations = next.relations.filter(
-    (relation) => !keys.has(relation?.from) && !keys.has(relation?.to),
-  );
-  return relations.length === next.relations.length
-    ? next
-    : { ...next, relations };
-}
 export function moveNode(
   tree: MindNode,
   sourceKey: string,

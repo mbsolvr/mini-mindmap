@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newDocument, parseDocument, updateNode, findParent, pastedImage, serializeWorkspace, workspaceFromDocument, setAllCollapsed, moveNode, moveNodes, topLevelSelection, removeNode } from "../src/model.ts";
+import { newDocument, parseDocument, updateNode, findParent, pastedImage, serializeWorkspace, workspaceFromDocument, setAllCollapsed, moveNode, moveNodes, topLevelSelection } from "../src/model.ts";
 
 test("tab view identity survives edits while duplicate maps remain independent", async () => {
   const { tabViewKey, tabWithTree } = await import("../src/model.ts");
@@ -32,17 +32,6 @@ test("children change immutably and can navigate to their parent", () => {
   assert.equal(doc.tree.children.length, 0);
   assert.equal(findParent(result, "child"), result.key);
   assert.equal(findParent(result, result.key), null);
-});
-test("removing a subtree removes only its relations and preserves the original for undo", () => {
-  const leaf = key => ({ key, text: key, children: [] });
-  const removed = { ...leaf("a"), children: [leaf("nested")] };
-  const links = [{ relKey: "1", from: "nested", to: "b", label: "" }, { relKey: "2", from: "b", to: "c", label: "" }];
-  const tree = { ...leaf("root"), children: [removed, leaf("b"), leaf("c")], relations: links };
-  const next = removeNode(tree, "a");
-  assert.deepEqual(next.relations, [links[1]]);
-  assert.deepEqual(tree.relations, links);
-  assert.equal(removeNode(tree, "root"), tree);
-  assert.equal(removeNode(tree, "missing"), tree);
 });
 test("single maps and workspaces preserve node and tab properties", () => {
   const raw = { format: "mini-mindmap", version: 2, type: "map", tree: { key: "root", text: "", image: { src: "data:image/png;base64,AA==" }, textStyle: { bold: true }, children: [] } };
