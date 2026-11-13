@@ -47,6 +47,7 @@ export function useRelations({
   setStatus,
 }: Options) {
   const [relationSource, setRelationSource] = useState<string | null>(null);
+  const sourceView = useRef<object | null>(null);
   const [selectedRelation, setSelectedRelation] = useState<number | null>(null);
   const [relationContext, setRelationContext] =
     useState<RelationContext | null>(null);
@@ -57,7 +58,7 @@ export function useRelations({
     setSelectedRelation(null);
     setRelationContext(null);
     setRelationEdit(null);
-  }, [workspace.active]);
+  }, [tabViewKey(workspace.tabs[workspace.active])]);
   function startRelation(key = selected) {
     if (multiKeys.size > 1) {
       setStatus("Select a source topic first");
@@ -70,6 +71,7 @@ export function useRelations({
       setStatus("Select a source topic for the connection");
       return;
     }
+    sourceView.current = tabViewKey(workspaceRef.current.tabs[workspaceRef.current.active]);
     setRelationSource(key);
     setSelectedRelation(null);
     setPane("");
@@ -80,6 +82,10 @@ export function useRelations({
     if (!relationSource) return;
     const map = workspaceRef.current.tabs[workspaceRef.current.active],
       tree = map.tree;
+    if (tabViewKey(map) !== sourceView.current) {
+      setRelationSource(null);
+      return;
+    }
     const next = addRelation(
       tree,
       relationSource,

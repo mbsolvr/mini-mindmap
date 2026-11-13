@@ -147,3 +147,16 @@ test("closing the active tab cannot redirect a pending context command to a matc
   h.workspaceRef.current = { active: 0, tabs: [h.second] };
   assert.equal(hook.relationIndex("r", 0, identity), -1);
 });
+
+test("closing a tab cannot carry a pending connection into the next map", async (t) => {
+  const h = await setup(t);
+  globalThis.document = { activeElement: { blur() {} } };
+  t.after(() => delete globalThis.document);
+  h.render().startRelation("a");
+  const hook = h.render();
+  h.workspaceRef.current = { active: 0, tabs: [h.second] };
+  hook.relationPick("b");
+  assert.deepEqual(h.edits, []);
+  h.render();
+  assert.equal(h.render().relationSource, null);
+});
