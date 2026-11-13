@@ -45,7 +45,7 @@ test("rerendering an unchanged workspace does not serialize it again", async () 
   render();
   assert.equal(reads, 0);
   ws.updateDirty();
-  assert.ok(reads > 0);
+  assert.equal(reads, 0);
   runtime.unmount();
 });
 

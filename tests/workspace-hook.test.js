@@ -52,3 +52,15 @@ test("workspace commits record history and ignore changes while opening", async 
     assert.deepEqual(hook.redoRef.current, []);
   } finally { globalThis.__workspaceHookTest = previous; }
 });
+
+test("snapshot comparison skips shared image payloads and unchanged subtrees", async () => {
+  const { sameSnapshot } = await import("../src/model.ts");
+  let reads = 0;
+  const image = { get src() { reads++; return "large-image"; } };
+  const shared = { children: [], image };
+  const first = { text: "before", children: [shared], image };
+  assert.equal(sameSnapshot(first, { ...first, text: "after" }), false);
+  assert.equal(sameSnapshot(first, { ...first }), true);
+  assert.equal(sameSnapshot({ ...first, extra: undefined }, first), true);
+  assert.equal(reads, 0);
+});

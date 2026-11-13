@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import {
   newDocument,
   serializeWorkspace,
+  sameSnapshot,
   tabViewKey,
   tabWithContent,
   tabWithTree,
@@ -27,6 +28,7 @@ export function useWorkspace(
   const workspaceRef = useRef(workspace);
   const [initialSaved] = useState(() => serializeWorkspace(workspace));
   const savedRef = useRef(initialSaved);
+  const savedWorkspace = useRef(workspace);
   const historyRef = useRef<Workspace[]>([]);
   const redoRef = useRef<Workspace[]>([]);
   const dirtyRef = useRef(false);
@@ -43,6 +45,7 @@ export function useWorkspace(
   const [savedVersion, setSavedVersion] = useState(0);
 
   function markTabsSaved(snapshot: Workspace) {
+    savedWorkspace.current = snapshot;
     snapshot.tabs.forEach((tab) =>
       savedTabsRef.current!.set(tabViewKey(tab), tab),
     );
@@ -51,13 +54,15 @@ export function useWorkspace(
   function isTabDirty(tab: Workspace["tabs"][number]) {
     const saved = savedTabsRef.current!.get(tabViewKey(tab));
     return (
-      !saved || (saved !== tab && JSON.stringify(saved) !== JSON.stringify(tab))
+      !saved || !sameSnapshot(saved, tab)
     );
   }
 
   function updateDirty() {
-    dirtyRef.current =
-      serializeWorkspace(workspaceRef.current) !== savedRef.current;
+    const current = workspaceRef.current, saved = savedWorkspace.current;
+    dirtyRef.current = !savedRef.current ||
+      !sameSnapshot(current.tabs, saved.tabs) ||
+      (current.tabs.length > 1 && current.active !== saved.active);
   }
   // Immutable workspace snapshots share unchanged data while bounding undo history.
   function pushSnapshot(stack: Workspace[], snapshot: Workspace) {
