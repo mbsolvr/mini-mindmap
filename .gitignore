@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+src-tauri/target/
+src-tauri/gen/
+
+# Local test output and editor files
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+coverage/
+tests/baselines/*.json
+
+# Local settings, credentials, and user documents
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.minimap
+!tests/fixtures/*.minimap
+
+# Machine-specific benchmark results
+/benchmark-local*.json

@@ -1,0 +1,206 @@
+/* Theme palettes cover both the workspace chrome and the map. */
+main[data-theme="default"] {
+  --ui-base: #f7f7f5;
+  --ui-surface: #fff;
+  --ui-hover: #eeedea;
+  --ui-text: #37352f;
+  --ui-muted: #716f69;
+  --ui-accent: #66645e;
+  --ui-border: #deddd8;
+}
+main[data-theme="midnight"] {
+  --ui-base: #0b0c16;
+  --ui-surface: #191627;
+  --ui-hover: #2b2239;
+  --ui-text: #f5f1f8;
+  --ui-muted: #b7b0c5;
+  --ui-accent: #f3e75b;
+  --ui-border: #403652;
+}
+.canvas[data-template="default"] {
+  --map-bg: #fff;
+  --map-root: #dce6f2;
+  --map-root-text: #376092;
+  --map-line: #558ed5;
+  --map-border: #558ed5;
+  --map-node: #dce6f2;
+  --map-text: #17375e;
+  --map-sub-text: #000;
+  --map-accent: #3769a5;
+  --map-relation: #77933c;
+  --map-floating: #3674ba;
+  --map-summary: #637b32;
+  --map-summary-line: #859c56;
+}
+.canvas[data-template="midnight"] {
+  --map-bg: #0d101c;
+  --map-root: #2e2430;
+  --map-root-text: #e9dcc2;
+  --map-line: #55ccd6;
+  --map-border: #55ccd6;
+  --map-node: #162833;
+  --map-text: #e4f7f6;
+  --map-sub-text: #d9e6f0;
+  --map-accent: #f3e75b;
+  --map-relation: #ff6eaa;
+  --map-floating: #185361;
+  --map-summary: #603454;
+  --map-summary-line: #f076ba;
+}
+.canvas[data-template] {
+  font-family: "Open Sans", "Noto Sans CJK SC", sans-serif;
+}
+.canvas[data-template]:lang(ja) {
+  font-family: "Open Sans", "Noto Sans CJK JP", sans-serif;
+}
+.canvas[data-template]:lang(ko) {
+  font-family: "Open Sans", "Noto Sans CJK KR", sans-serif;
+}
+.canvas[data-template] .branch-layer {
+  stroke: var(--map-line);
+  stroke-width: 1pt;
+}
+.canvas[data-template] .children::before,
+.canvas[data-template] .branch::before,
+.canvas[data-template] .branch::after {
+  display: none;
+}
+.canvas[data-template] :is(.layout-fishbone, .layout-reverse-fishbone) > .node-row > .children::before,
+.canvas[data-template] :is(.layout-fishbone, .layout-reverse-fishbone) > .node-row > .children > .branch::before {
+  display: block;
+}
+.canvas[data-template] .node {
+  border: 1px solid var(--map-border);
+  border-radius: 6px;
+  background: var(--map-node);
+  box-shadow: none;
+}
+.canvas[data-template] .root-node {
+  padding: 14pt 22pt;
+  border: 5pt solid var(--map-border);
+  border-radius: 8pt;
+  background: var(--map-root);
+  color: var(--map-root-text);
+  font-size: calc(var(--content-font-size, 14px) + 10px);
+  font-weight: 700;
+}
+.canvas[data-template="midnight"] .map > .node-row > .root-node {
+  --map-accent: #b9a56a;
+  border-color: var(--map-accent);
+  box-shadow: 0 0 14px #b9a56a18;
+}
+/* Keep deeper topics light while preserving a visible drop target. */
+.canvas[data-template] .node-row:not(.depth-0):not(.depth-1) > .node {
+  border: 0;
+  border-bottom: 3pt solid var(--map-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--map-sub-text);
+  padding: 3px 8px 2px;
+  min-height: 0;
+  font-size: max(10px, calc(var(--content-font-size, 14px) - 1px));
+}
+.canvas[data-template] .node-row.depth-1 > .node {
+  padding: 6pt;
+  border-width: 2pt;
+  font-size: calc(var(--content-font-size, 14px) + 3px);
+}
+.canvas[data-template] .floating-topic > .node-row > .root-node {
+  padding: 6pt;
+  border: 0;
+  background: var(--map-floating);
+  color: #fff;
+  font-size: calc(var(--content-font-size, 14px) + 3px);
+}
+.canvas[data-template] .summary-group .summary-node > .node-row > .node {
+  padding: 4pt;
+  border: 0;
+  border-radius: 5px;
+  background: var(--map-summary);
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: max(10px, calc(var(--content-font-size, 14px) - 1px));
+  font-style: italic;
+  font-weight: 400;
+}
+.canvas[data-template] .summary-bracket {
+  border-color: var(--map-summary-line);
+  border-width: 5pt 5pt 5pt 0;
+}
+.canvas[data-template] .summary-left .summary-bracket {
+  border-width: 5pt 0 5pt 5pt;
+}
+.canvas[data-template] .summary-bracket::after {
+  border-top: 5pt solid var(--map-summary-line);
+}
+.canvas[data-template] .node.selected {
+  outline: 2px solid var(--map-accent);
+  outline-offset: 2px;
+  border-color: var(--map-accent);
+}
+.canvas[data-template] .collapse {
+  background: var(--map-bg);
+  color: var(--map-text);
+  border-color: var(--map-line);
+}
+.canvas[data-template] .collapse:hover {
+  background: var(--map-node);
+}
+.canvas[data-template] .relation-line {
+  stroke: var(--map-relation);
+}
+.canvas[data-template] .relation-label {
+  fill: var(--map-relation);
+}
+main button:hover:not(:disabled),
+main .export-options summary:hover,
+main .export-options[open] summary {
+  background-color: var(--ui-hover);
+}
+.top-bar .tab:hover {
+  background: var(--ui-hover);
+}
+.top-bar .tab.active {
+  background: var(--ui-surface);
+}
+.top-bar .tab .tab-close:hover {
+  background: var(--ui-hover);
+}
+.autosave-switch {
+  background: var(--ui-border);
+  border-color: var(--ui-border);
+}
+main[data-theme="midnight"] .autosave-switch.on span {
+  background: #0b0c16;
+}
+.context {
+  color-scheme: light;
+}
+main[data-theme="midnight"] .context {
+  color-scheme: dark;
+}
+.outline-row.active {
+  background: var(--ui-hover);
+}
+.outline-row button,
+.menu-shortcut {
+  color: var(--ui-muted);
+}
+.selection-box {
+  background: color-mix(in srgb, var(--ui-accent) 16%, transparent);
+}
+main[data-theme="default"] .tabs-scrollbar {
+  scrollbar-color: #7778 transparent;
+}
+main[data-theme="default"] .tabs-scrollbar::-webkit-scrollbar-thumb {
+  background: #7778;
+}
+.close-tab-dialog {
+  width: min(400px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  box-shadow: 0 16px 48px #0004;
+}

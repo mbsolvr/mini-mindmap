@@ -1,0 +1,890 @@
+.map {
+  width: max-content;
+  min-width: max-content;
+}
+.node-row {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  --connector-offset: 0px;
+}
+.node {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 8px;
+  border: 1px solid #505050;
+  border-radius: 6px;
+  background: #262626;
+  padding: 7px 9px;
+  min-height: 36px;
+}
+.root-node {
+  background: #30302f;
+  font-weight: 650;
+}
+.node.selected {
+  outline: 2px solid #809c99;
+  outline-offset: 2px;
+}
+.node img {
+  max-width: 110px;
+  max-height: 80px;
+  object-fit: contain;
+  cursor: zoom-in;
+  border-radius: 3px;
+}
+.image-note {
+  font-size: 12px;
+  color: #999;
+}
+.open-link {
+  font-size: 16px;
+  padding: 2px;
+}
+/* Lines meet at the centre of each branch, including branches with subtrees. */
+.children {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-left: 7px;
+  --parent-offset: var(--connector-offset);
+}
+.children:before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: calc(50% + var(--connector-offset));
+  width: 7px;
+  border-top: 1px solid var(--map-line, #666);
+}
+.branch {
+  display: flex;
+  align-items: center;
+  position: relative;
+  --connector-offset: 0px;
+  padding: 2px 0 2px 12px;
+}
+.branch:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(50% + var(--connector-offset));
+  width: 12px;
+  border-top: 1px solid var(--map-line, #666);
+}
+.branch:after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-left: 1px solid var(--map-line, #666);
+}
+.branch:first-child:before {
+  height: calc(50% - var(--connector-offset));
+  border-left: 1px solid var(--map-line, #666);
+  border-top-left-radius: 6px;
+}
+.branch:last-child:before {
+  top: 0;
+  height: calc(50% + var(--connector-offset));
+  border-top: 0;
+  border-bottom: 1px solid var(--map-line, #666);
+  border-left: 1px solid var(--map-line, #666);
+  border-bottom-left-radius: 6px;
+}
+.branch:first-child:after,
+.branch:last-child:after {
+  display: none;
+}
+.branch:only-child {
+  padding-left: 6px;
+}
+.branch:only-child:before {
+  top: calc(50% + var(--connector-offset));
+  height: 0;
+  width: 6px;
+  border: 0;
+  border-top: 1px solid var(--map-line, #666);
+  border-radius: 0;
+}
+.branch:only-child:after {
+  display: block;
+  top: calc(50% + min(var(--parent-offset), var(--connector-offset)));
+  height: calc(
+    max(var(--parent-offset), var(--connector-offset)) -
+      min(var(--parent-offset), var(--connector-offset))
+  );
+}
+.collapse {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 7px;
+  height: 7px;
+  line-height: 1;
+  border: 1px solid #555;
+  border-radius: 50%;
+  font-size: 7px;
+  padding: 0;
+  margin-left: 3px;
+  flex-shrink: 0;
+  color: #aaa;
+}
+.collapse:before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 3px;
+  border-top: 1px solid var(--map-line, #666);
+}
+.collapse:after {
+  content: "";
+  position: absolute;
+  inset: -5px -5px -5px 0;
+}
+.context {
+  position: fixed;
+  width: 210px;
+}
+.context > div:first-child {
+  padding: 6px;
+  color: #aaa;
+}
+.colors,
+.format-buttons {
+  display: flex;
+  gap: 5px;
+  padding: 6px;
+}
+.colors button {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 1px solid #777;
+}
+.format-buttons button,
+.context select {
+  background: #363636;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 5px;
+}
+.context label {
+  display: block;
+  padding: 6px;
+}
+.context select {
+  color: inherit;
+  margin-left: 10px;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: #000c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+.preview {
+  max-width: 90vw;
+  max-height: 90vh;
+  text-align: center;
+}
+.preview img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+}
+.preview p {
+  margin: 8px;
+  color: #ddd;
+}
+/* Measure text with the same font as the editor, including CJK and custom sizes. */
+.node-text {
+  display: inline-block;
+  position: relative;
+  min-width: 1ch;
+}
+.node-text-measure,
+.node-text textarea {
+  white-space: pre;
+  font: inherit;
+  line-height: 1.4;
+  letter-spacing: inherit;
+}
+.node-text-measure {
+  display: block;
+  visibility: hidden;
+}
+.node-text textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  text-underline-offset: 1px;
+}
+.node {
+  background: #242424;
+  border-color: #444;
+  border-radius: 5px;
+  padding: 7px 10px;
+}
+.root-node {
+  background: #2b2b2b;
+  border-color: #585858;
+}
+.node.selected {
+  outline: 1px solid #819994;
+  outline-offset: 2px;
+  border-color: #819994;
+}
+.canvas[data-template] {
+  background: var(--map-bg);
+  color: var(--map-text);
+}
+.canvas[data-template] .node {
+  background: var(--map-node);
+  color: var(--map-text);
+  border-color: var(--map-line);
+  border-left: 3px solid var(--map-line);
+  box-shadow: 0 1px 3px #0002;
+}
+.canvas[data-template] .root-node {
+  background: var(--map-root);
+  color: #fff;
+  border-color: var(--map-root);
+}
+.canvas[data-template] .collapse {
+  color: var(--map-text);
+  border-color: var(--map-line);
+}
+.canvas {
+  overflow: hidden;
+  touch-action: none;
+  cursor: default;
+}
+.canvas.pan-ready {
+  cursor: grab;
+}
+.canvas.panning {
+  cursor: grabbing;
+  user-select: none;
+}
+.node.drop-inside {
+  outline: 2px solid #79aa9f;
+  outline-offset: 2px;
+}
+.node.drop-before:before,
+.node.drop-after:after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  height: 2px;
+  background: #79aa9f;
+  border-radius: 2px;
+}
+.node.drop-before:before {
+  top: -5px;
+}
+.node.drop-after:after {
+  bottom: -5px;
+}
+.node.dragging {
+  opacity: 0.4;
+}
+.node.drop-inside {
+  outline: 2px solid #78b9a9;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px #78b9a92b;
+}
+.node.drop-before:before,
+.node.drop-after:after {
+  height: 3px;
+  background: #78b9a9;
+  box-shadow: 0 0 0 2px #78b9a930;
+}
+.drag-ghost {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 240px;
+  padding: 8px 11px;
+  border: 1px solid #79aa9f;
+  border-radius: 6px;
+  background: #292f2e;
+  color: #edf4f1;
+  box-shadow: 0 8px 22px #0007;
+  font-size: 13px;
+}
+.drag-ghost strong,
+.drag-ghost span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drag-ghost span {
+  color: #aed3c8;
+  font-size: 11px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .children {
+    animation: branch-reveal 140ms ease-out;
+  }
+  .node {
+    transition:
+      outline-color 120ms,
+      box-shadow 120ms,
+      opacity 120ms;
+  }
+  .drag-ghost {
+    animation: ghost-appear 120ms ease-out;
+  }
+  .collapse {
+    transition: background-color 140ms, border-color 140ms;
+  }
+  @keyframes branch-reveal {
+    from {
+      opacity: 0.8;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes ghost-appear {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+.selection-box {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  border: 1px solid #79b8a8;
+  background: #79b8a82a;
+}
+/* Reverse branches keep the same structure and controls as right-facing branches. */
+.mirror .node-row,
+.layout-reverse .node-row {
+  flex-direction: row-reverse;
+}
+.mirror.children,
+.mirror .children,
+.layout-reverse .children {
+  margin-left: 0;
+  margin-right: 7px;
+}
+.mirror.children:before,
+.mirror .children:before,
+.layout-reverse .children:before {
+  left: auto;
+  right: -7px;
+}
+.mirror .branch,
+.layout-reverse .branch {
+  padding-left: 0;
+  padding-right: 12px;
+  justify-content: flex-end;
+}
+.mirror .branch:before,
+.mirror .branch:after,
+.layout-reverse .branch:before,
+.layout-reverse .branch:after {
+  left: auto;
+  right: 0;
+  border-left: 0;
+  border-right: 1px solid var(--map-line, #666);
+  border-radius: 0;
+}
+.mirror .branch:first-child:before,
+.layout-reverse .branch:first-child:before {
+  border-top-right-radius: 6px;
+}
+.mirror .branch:last-child:before,
+.layout-reverse .branch:last-child:before {
+  border-bottom-right-radius: 6px;
+}
+.mirror .branch:only-child,
+.layout-reverse .branch:only-child {
+  padding-right: 6px;
+}
+.mirror .branch:only-child:before,
+.layout-reverse .branch:only-child:before {
+  border: 0;
+  border-top: 1px solid var(--map-line, #666);
+}
+.mirror .collapse,
+.layout-reverse .collapse {
+  margin-left: 0;
+  margin-right: 3px;
+}
+.mirror .collapse:after,
+.layout-reverse .collapse:after {
+  inset: -5px 0 -5px -5px;
+}
+.mirror .collapse:before,
+.layout-reverse .collapse:before {
+  right: auto;
+  left: 100%;
+}
+.layout-org .node-row {
+  flex-direction: column;
+}
+.layout-org .children {
+  flex-direction: row;
+  margin: 12px 0 0;
+}
+.layout-org .children:before {
+  left: 50%;
+  top: -12px;
+  width: 0;
+  height: 12px;
+  border: 0;
+  border-left: 1px solid var(--map-line, #666);
+}
+.layout-org .branch {
+  padding: 18px 5px 0;
+  align-items: flex-start;
+}
+.layout-org .branch:before {
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 18px;
+  border: 0;
+  border-left: 1px solid var(--map-line, #666);
+  border-radius: 0;
+}
+.layout-org .branch:after {
+  display: block;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--map-line, #666);
+}
+.layout-org .branch:first-child:after {
+  left: 50%;
+  width: 50%;
+}
+.layout-org .branch:last-child:after {
+  width: 50%;
+}
+.layout-org .branch:only-child:after {
+  display: none;
+}
+.layout-org .collapse {
+  margin: 3px 0 0;
+}
+.layout-org .collapse:after {
+  inset: 0 -5px -5px;
+}
+.layout-org .collapse:before {
+  right: auto;
+  top: auto;
+  bottom: 100%;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  border: 0;
+  border-left: 1px solid var(--map-line, #666);
+}
+/* First-level causes alternate around a shared horizontal spine. */
+.layout-fishbone > .node-row,
+.layout-reverse-fishbone > .node-row {
+  flex-direction: row-reverse;
+}
+.layout-fishbone > .node-row > .children,
+.layout-reverse-fishbone > .node-row > .children {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-auto-columns: max-content;
+  grid-auto-flow: column;
+  margin: 0 12px 0 0;
+  align-items: end;
+}
+.layout-fishbone > .node-row > .children:before,
+.layout-reverse-fishbone > .node-row > .children:before {
+  left: 0;
+  right: -12px;
+  top: 50%;
+  width: auto;
+  border-top: 2px solid var(--map-line, #666);
+}
+.layout-fishbone > .node-row > .children > .branch,
+.layout-reverse-fishbone > .node-row > .children > .branch {
+  grid-column: var(--branch-index);
+  padding: 10px 12px 18px;
+  align-self: end;
+}
+.layout-fishbone > .node-row > .children > .branch:nth-child(even),
+.layout-reverse-fishbone > .node-row > .children > .branch:nth-child(even) {
+  grid-row: 2;
+  align-self: start;
+  padding: 18px 12px 10px;
+}
+.layout-fishbone > .node-row > .children > .branch:before,
+.layout-reverse-fishbone > .node-row > .children > .branch:before {
+  left: 50%;
+  top: auto;
+  bottom: 0;
+  width: 0;
+  height: 18px;
+  border: 0;
+  border-left: 1px solid var(--map-line, #666);
+  border-radius: 0;
+  transform: skewX(-25deg);
+  transform-origin: bottom;
+}
+.layout-fishbone > .node-row > .children > .branch:nth-child(even):before,
+.layout-reverse-fishbone
+  > .node-row
+  > .children
+  > .branch:nth-child(even):before {
+  top: 0;
+  bottom: auto;
+  transform-origin: top;
+  transform: skewX(25deg);
+}
+.layout-fishbone > .node-row > .children > .branch:after,
+.layout-reverse-fishbone > .node-row > .children > .branch:after {
+  display: none;
+}
+.layout-fishbone > .node-row > .collapse,
+.layout-reverse-fishbone > .node-row > .collapse {
+  margin-left: 0;
+  margin-right: 3px;
+}
+.layout-fishbone > .node-row > .collapse:after {
+  inset: -5px 0 -5px -5px;
+}
+.layout-fishbone > .node-row > .collapse:before,
+.layout-reverse-fishbone > .node-row > .collapse:before {
+  right: auto;
+  left: 100%;
+}
+.layout-reverse-fishbone > .node-row {
+  flex-direction: row;
+}
+.layout-reverse-fishbone > .node-row > .children {
+  margin: 0 0 0 12px;
+}
+.layout-reverse-fishbone > .node-row > .children:before {
+  left: -12px;
+  right: 0;
+}
+.layout-reverse-fishbone > .node-row > .children > .branch:before {
+  transform: skewX(25deg);
+}
+.layout-reverse-fishbone
+  > .node-row
+  > .children
+  > .branch:nth-child(even):before {
+  transform: skewX(-25deg);
+}
+.layout-reverse-fishbone > .node-row > .collapse {
+  margin: 0 0 0 3px;
+}
+.layout-reverse-fishbone > .node-row > .collapse:after {
+  inset: -5px -5px -5px 0;
+}
+.layout-reverse-fishbone > .node-row > .collapse:before {
+  left: auto;
+  right: 100%;
+}
+.map .collapse[aria-expanded="false"] {
+  margin: 0;
+}
+.map .collapse[aria-expanded="false"]:before {
+  display: none;
+}
+.map:not(.layout-org) .node-row:not(.depth-0):not(.depth-1) > .collapse {
+  transform: translateY(var(--connector-offset));
+}
+.map {
+  position: relative;
+}
+.branch-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
+}
+.floating-object {
+  position: absolute;
+  z-index: 3;
+  width: max-content;
+  max-width: none;
+  cursor: default;
+}
+.floating-note {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px;
+  border: 1px solid var(--map-border);
+  border-radius: 5px;
+  background: var(--map-node);
+  color: var(--map-text);
+  font-size: var(--content-font-size, 14px);
+}
+.floating-note textarea {
+  width: 200px;
+  min-height: 60px;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.4;
+}
+.canvas-context {
+  position: fixed;
+  width: 210px;
+  z-index: 30;
+}
+.node-row {
+  position: relative;
+}
+.relation-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 4;
+}
+.relation-line {
+  fill: none;
+  stroke: #7aaea6;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.relation-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.relation-selected .relation-line {
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+.relation-controls line {
+  stroke: var(--map-relation, #7aaea6);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.relation-controls circle {
+  fill: var(--map-bg, #fff);
+  stroke: var(--map-relation, #7aaea6);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: all;
+  touch-action: none;
+  cursor: grab;
+}
+.relation-controls circle:active {
+  cursor: grabbing;
+}
+.relation-controls circle:focus-visible {
+  outline: none;
+  stroke: var(--ui-accent);
+  stroke-width: 3;
+}
+.relation-label {
+  fill: #7aaea6;
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: var(--map-bg, #191919);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: all;
+  cursor: text;
+}
+.relation-editor-container {
+  overflow: visible;
+  pointer-events: auto;
+}
+.relation-editor {
+  width: 100%;
+  height: 22px;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--map-relation, #7aaea6);
+  outline: none;
+  background: var(--map-bg, #191919);
+  color: var(--map-relation, #7aaea6);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.relation-context {
+  width: 150px;
+  z-index: 25;
+}
+.node.relation-source {
+  outline: 2px dashed #79b8a8;
+  outline-offset: 3px;
+  animation: relation-pulse 1.1s ease-in-out infinite alternate;
+}
+.relation-guide {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 12;
+  pointer-events: none;
+  overflow: visible;
+}
+.relation-guide path {
+  fill: none;
+  stroke: var(--ui-accent);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  animation: relation-flow 0.6s linear infinite;
+}
+@keyframes relation-flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+@keyframes relation-pulse {
+  to {
+    outline-color: #c2e9df;
+    outline-offset: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .relation-guide path,
+  .node.relation-source {
+    animation: none;
+  }
+}
+/* Click a topic to select or drag it; only a focused editor accepts text input. */
+.node-text textarea:not(:focus),
+.floating-note textarea:not(:focus) {
+  pointer-events: none;
+}
+.node,
+.floating-note {
+  touch-action: none;
+}
+.summary-group {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  z-index: 3;
+}
+.summary-bracket {
+  position: relative;
+  align-self: stretch;
+  width: 12px;
+  border: solid var(--map-relation, #7aaea6);
+  border-width: 2px 2px 2px 0;
+}
+.summary-bracket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  width: 8px;
+  border-top: 2px solid var(--map-relation, #7aaea6);
+}
+.summary-left {
+  transform: translateX(-100%);
+  flex-direction: row-reverse;
+}
+.summary-left .summary-bracket {
+  border-width: 2px 0 2px 2px;
+}
+.summary-left .summary-bracket::after {
+  left: -10px;
+  right: auto;
+}
+.summary-node {
+  margin-left: 8px;
+}
+.summary-left .summary-node {
+  margin-left: 0;
+  margin-right: 8px;
+}
+.summary-delete {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 5px;
+  border-radius: 5px;
+  color: var(--ui-muted);
+  opacity: 0;
+  margin-left: 4px;
+}
+.summary-left .summary-delete {
+  margin-left: 0;
+  margin-right: 4px;
+}
+.summary-delete .menu-label > span {
+  display: none;
+}
+.summary-delete .menu-icon {
+  color: inherit;
+}
+.summary-group:hover .summary-delete,
+.summary-group:focus-within .summary-delete {
+  opacity: 1;
+}
+.summary-delete:not(:disabled):is(:hover, :focus-visible) {
+  color: #d34c43;
+}
+.summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible)) > .summary-node .node {
+  outline: 2px solid #d34c43;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px #d34c4326;
+}
+.summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible)) > .summary-bracket {
+  filter: drop-shadow(0 0 3px #d34c43);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible)) > .summary-node .node {
+    animation: summary-delete-preview 180ms ease-out;
+  }
+  @keyframes summary-delete-preview {
+    from {
+      outline-color: transparent;
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+}

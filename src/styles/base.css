@@ -1,0 +1,131 @@
+:root {
+  font-family: Inter, "Noto Sans CJK SC", sans-serif;
+  color: #e1e1df;
+  background: #191919;
+  font-size: 14px;
+}
+:root:lang(ja) {
+  font-family: Inter, "Noto Sans CJK JP", sans-serif;
+}
+:root:lang(ko) {
+  font-family: Inter, "Noto Sans CJK KR", sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button:hover:not(:disabled) {
+  background: #343434;
+}
+main {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: #202020;
+  border-bottom: 1px solid #3c3c3c;
+  z-index: 2;
+}
+nav {
+  display: flex;
+  padding: 0 12px;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  height: 36px;
+  align-items: center;
+}
+.menu {
+  position: relative;
+}
+.menu > button {
+  padding: 7px 12px;
+  border-radius: 4px;
+}
+.dropdown,
+.context {
+  position: absolute;
+  min-width: 180px;
+  background: #282828;
+  border: 1px solid #454545;
+  border-radius: 6px;
+  padding: 5px;
+  box-shadow: 0 8px 22px #0006;
+  z-index: 10;
+}
+.dropdown {
+  top: 31px;
+  left: 0;
+}
+.dropdown button,
+.context > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border-radius: 4px;
+}
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 38px;
+  padding: 0 14px;
+  overflow-x: auto;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab.active {
+  border-color: #a3c5c1;
+}
+.tab button {
+  padding: 8px 7px;
+  color: #aaa;
+}
+.tab.active button {
+  color: #d9e4e2;
+}
+.tab button + button {
+  font-size: 17px;
+  padding: 4px 7px;
+}
+.new-tab {
+  font-size: 18px;
+  border-radius: 4px;
+}
+.error {
+  background: #653a37;
+  padding: 9px 16px;
+}
+.error button {
+  float: right;
+}
+.canvas {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: safe center;
+  padding: 70px;
+  cursor: default;
+}

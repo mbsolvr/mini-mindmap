@@ -1,0 +1,32 @@
+{
+  "name": "mini-mindmap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "build:app": "tauri build --no-bundle && node -e \"const fs=require('node:fs'), name='mini-mindmap'+(process.platform==='win32'?'.exe':''), target='build/'+name; fs.mkdirSync('build',{recursive:true}); fs.copyFileSync('src-tauri/target/release/'+name,target+'.tmp'); fs.renameSync(target+'.tmp',target); console.log('Built application at: '+target)\"",
+    "test": "node --test tests/*.test.js",
+    "test:stress": "node tests/stress.mjs",
+    "test:ui": "python3 tests/ui_smoke.py",
+    "typecheck": "tsc --noEmit",
+    "test:benchmark": "node tests/benchmark.mjs",
+    "test:all": "npm test && cargo test --offline --manifest-path src-tauri/Cargo.toml && npm run test:ui && npm run test:stress",
+    "test:perf-ui": "python3 -m unittest discover -s tests -p test_perf_ui.py && npm run build && python3 tests/perf_ui.py"
+  },
+  "dependencies": {
+    "jszip": "^3.10.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^6.0.3",
+    "vite": "6.4.5"
+  },
+  "description": "A local-first mind map app.",
+  "license": "LGPL-3.0-only"
+}

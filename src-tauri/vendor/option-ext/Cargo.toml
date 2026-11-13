@@ -1,0 +1,10 @@
+# Apache-2.0 compatibility shim from VibeOffice, kept local for offline builds.
+[package]
+name = "option-ext"
+version = "0.2.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+
+[lib]
+path = "src/lib.rs"

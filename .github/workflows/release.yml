@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64 DEB
+            os: ubuntu-22.04
+            args: --bundles deb
+          - name: Linux x64 AppImage
+            os: ubuntu-22.04
+            args: --bundles appimage
+          - name: Windows x64
+            os: windows-latest
+            args: --bundles nsis
+          - name: macOS Apple Silicon
+            os: macos-latest
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin --bundles dmg
+          - name: macOS Intel
+            os: macos-latest
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin --bundles dmg
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev xdg-utils
+      - name: Check release version
+        shell: bash
+        run: |
+          node -e 'const fs=require("fs"); const pkg=require("./package.json").version; const tauri=require("./src-tauri/tauri.conf.json").version; const cargo=fs.readFileSync("src-tauri/Cargo.toml","utf8").match(/^version\s*=\s*"([^"]+)"/m)?.[1]; if (process.env.GITHUB_REF_NAME !== `v${pkg}` || tauri !== pkg || cargo !== pkg) { console.error("Tag and package versions must match"); process.exit(1); }'
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: '-'
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Mini Mindmap ${{ github.ref_name }}
+          releaseBody: 'See the attached files for each platform.'
+          releaseDraft: true
+          prerelease: false
+          retryAttempts: '3'
+          args: ${{ matrix.args }}

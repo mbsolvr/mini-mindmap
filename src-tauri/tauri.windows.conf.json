@@ -1,0 +1,11 @@
+{
+  "bundle": {
+    "fileAssociations": [
+      {
+        "ext": ["minimap"],
+        "name": "Mini Mindmap",
+        "description": "Mini Mindmap document"
+      }
+    ]
+  }
+}

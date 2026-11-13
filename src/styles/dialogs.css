@@ -1,0 +1,176 @@
+.close-tab-dialog::backdrop {
+  background: #0008;
+}
+.close-tab-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 650;
+}
+.close-tab-dialog p {
+  margin: 0 0 10px;
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.close-tab-dialog .confirm-detail {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--ui-text);
+}
+.settings-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  box-shadow: 0 16px 48px #0004;
+  font-size: var(--default-font-size, 14px);
+}
+.settings-dialog::backdrop {
+  background: #0008;
+}
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.settings-header h2:focus {
+  outline: none;
+}
+.settings-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.15em;
+}
+.settings-header h2 .menu-icon {
+  width: 17px;
+  height: 17px;
+  color: var(--ui-muted);
+}
+.settings-header button {
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 4px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--ui-border);
+}
+.settings-choice {
+  position: relative;
+  width: 150px;
+  flex: none;
+}
+.settings-choice summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  padding: 6px 9px;
+  border: 1px solid var(--ui-border);
+  border-radius: 5px;
+  background: var(--ui-base);
+  color: var(--ui-text);
+  cursor: pointer;
+}
+.settings-choice summary::-webkit-details-marker {
+  display: none;
+}
+.settings-choice summary span {
+  color: var(--ui-muted);
+}
+.settings-choice summary:focus-visible,
+.settings-options button:focus-visible {
+  outline: 1px solid var(--ui-accent);
+  outline-offset: -1px;
+}
+.settings-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 2;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-surface);
+  box-shadow: 0 8px 24px #0005;
+}
+.settings-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  text-align: left;
+}
+.settings-options button span {
+  color: var(--ui-accent);
+}
+.settings-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-range input {
+  width: 120px;
+  accent-color: var(--ui-accent);
+}
+.settings-range output {
+  min-width: 43px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.settings-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 18px;
+}
+.settings-actions button {
+  padding: 6px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 5px;
+  background: var(--ui-base);
+}
+.close-tab-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.close-tab-actions button {
+  padding: 7px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 5px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+.close-tab-actions .confirm-action {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: #fff;
+}
+.close-tab-actions .confirm-action:hover {
+  background: var(--ui-accent);
+  filter: brightness(0.9);
+}
+main[data-theme="midnight"] .close-tab-actions .confirm-action {
+  color: #101720;
+}
+.close-tab-actions button:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
