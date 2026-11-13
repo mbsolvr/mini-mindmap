@@ -102,7 +102,7 @@ export function useExports({
       await Promise.all(
         Array.from(
           document.querySelectorAll<HTMLImageElement>(".print-document img"),
-          (image) => image.decode().catch(() => {}),
+          (image) => image.decode(),
         ),
       );
       if (document.fonts) await document.fonts.ready;
