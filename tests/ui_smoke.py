@@ -599,10 +599,15 @@ def run():
             assert script("const map=document.querySelector('.map'), z=Number(map.dataset.zoom), p=document.querySelector('.relation-line').getBoundingClientRect(), r=map.getBoundingClientRect(); return window.__curveExport.height >= (Math.max(r.bottom,p.bottom)-Math.min(r.top,p.top))/z+63")
             click('[aria-label="Fit Canvas"]')
             wait_for(lambda: script("const p=document.querySelector('.relation-line').getBoundingClientRect(), c=document.querySelector('.canvas').getBoundingClientRect(); return p.left>=c.left && p.right<=c.right && p.top>=c.top && p.bottom<=c.bottom"), 'fit reshaped connection')
-            label_x = script("const r = document.querySelector('.relation-label').getBoundingClientRect(); return r.left + r.width / 2")
+            # SVG text bounds measure glyph ink, which need not be centered on the text anchor.
+            label_x = script("return Number(document.querySelector('.relation-label').getAttribute('x'))")
             script("document.querySelector('.relation-label').dispatchEvent(new MouseEvent('dblclick', {bubbles:true}))")
             wait_for(lambda: script("return !!document.querySelector('.relation-editor')"), 'inline connection editor')
-            assert abs(script("const r = document.querySelector('.relation-editor').getBoundingClientRect(); return r.left + r.width / 2") - label_x) < 2
+            wait_for(lambda: script("""const input=document.querySelector('.relation-editor'), box=input?.closest('foreignObject');
+              if (!box) return false;
+              const anchor=new DOMPoint(arguments[0],0).matrixTransform(box.getScreenCTM()), r=input.getBoundingClientRect();
+              return Math.abs(Number(box.getAttribute('x'))+Number(box.getAttribute('width'))/2-arguments[0])<.01 &&
+                Math.abs(r.left+r.width/2-anchor.x)<2;""", label_x), 'connection editor centered on the SVG label anchor')
             keys('.relation-editor', '\ue009a\ue000Temporary')
             keys('.relation-editor', '\ue009z\ue000')
             assert script("return document.querySelector('.relation-editor').value") != 'Temporary'
@@ -1360,5 +1365,7 @@ if __name__ == "__main__":
     try:
         run()
     except (AssertionError, RuntimeError, OSError) as error:
-        print(f"UI test failed: {error}", file=sys.stderr)
+        frame = traceback.extract_tb(error.__traceback__)[-1]
+        detail = str(error) or frame.line or type(error).__name__
+        print(f"UI test failed at {frame.filename}:{frame.lineno}: {detail}", file=sys.stderr)
         sys.exit(1)
