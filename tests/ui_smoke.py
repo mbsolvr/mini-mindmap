@@ -91,7 +91,7 @@ def contrast_ratio(foreground, background):
 
 
 def run():
-    driver = shutil.which("chromedriver")
+    driver = os.environ.get("CHROMEDRIVER_BIN") or shutil.which("chromedriver")
     chrome = os.environ.get("CHROME_BIN") or shutil.which("chromium") or shutil.which("google-chrome")
     vite = ROOT / "node_modules/.bin/vite"
     if not driver or not chrome or not vite.exists():

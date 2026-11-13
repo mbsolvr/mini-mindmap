@@ -68,3 +68,10 @@ test('seeded repeated moves preserve every topic, connection and saved structure
     }
   }
 });
+
+test('the main native window grants PDF printing permission', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const capabilities = JSON.parse(await readFile(new URL('../src-tauri/capabilities/default.json', import.meta.url), 'utf8'));
+  assert.ok(capabilities.windows.includes('main'));
+  assert.ok(capabilities.permissions.includes('core:webview:allow-print'));
+});

@@ -21,14 +21,25 @@ The hook test helper controls state and effect boundaries without a DOM. It comp
 ## Commands
 
 - `npm test`: model, archive, command, hook, and rendering tests.
-- `npm run test:ui`: browser regression with an isolated Chromium profile and a simulated Tauri bridge. Requires Chromium and a matching ChromeDriver on `PATH`; `CHROME_BIN` can select the browser. Poppler tools enable additional PDF checks when available.
+- `npm run test:ui`: browser regression with an isolated Chromium profile and a simulated Tauri bridge. Requires Chromium and a matching ChromeDriver on `PATH`; `CHROME_BIN` and `CHROMEDRIVER_BIN` can select the browser and matching driver. Poppler tools enable additional PDF checks when available.
 - `npm run test:stress`: 200 edit/move/save/open cycles on a 2001-topic map. Set `MINIMAP_STRESS_CYCLES` to a value from 1 to 10000 for a longer run.
 - `cargo test --offline --manifest-path src-tauri/Cargo.toml`: Rust storage and desktop-boundary tests, using cached dependencies.
 - `npm run build`: strict TypeScript checking and production frontend build.
 - `npm run test:perf-ui`: browser performance measurements; see [performance](performance.md).
 
-The release workflow runs frontend tests and Rust tests on each release platform. Browser and stress checks are available locally through `test:all`.
+CI runs the browser suite on every branch push and pull request, including synthetic IME composition, label editing, pointer gestures, and PDF text/page checks with Poppler. A macOS job compiles the native application and runs Rust tests; the permission contract checks that the main window can print. The release workflow also runs frontend and Rust tests on each release platform. Stress checks remain available locally through `test:all`.
 
 ## Limits
 
 Browser tests simulate native dialogs, clipboard operations, and window closing. They do not prove native WebView behavior, power-loss durability on every filesystem, or actual disk-full handling. Native Windows/macOS interaction and translation wording still need platform and native-speaker review. No coverage percentage is claimed without instrumentation.
+
+
+## Native release checks
+
+Before publishing a draft release, run the packaged application on macOS and Windows and record the OS, application version, and result in the release notes:
+
+- Export a map containing text and images to PDF through the native print dialog. Save the PDF, reopen it, and check that all images and text are present. On macOS, verify that printing is allowed by the capability configuration.
+- Use a real Chinese or Japanese input method in topic, note, tab-title, and connection-label editors. Confirming a candidate with Enter must keep composition correct and must not add a topic. Save and reopen the document to verify the text.
+- Zoom in and out with branch lines and manually adjusted connections visible. Check that both endpoints stay attached to their topics.
+
+Chromium composition events do not exercise the operating system's input method, and its PDF rendering does not exercise WKWebView or the native print dialog. CI's macOS compilation does not replace these packaged-application checks.
