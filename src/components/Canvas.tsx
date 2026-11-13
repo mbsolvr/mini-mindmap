@@ -66,9 +66,10 @@ export default function Canvas({
       <div
         ref={mapRef}
         className={"map layout-" + layout}
+        data-zoom={zoom}
         style={{
-          zoom,
-          transform: `translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+          transformOrigin: "left center",
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
         }}
       >
         <BranchLayer

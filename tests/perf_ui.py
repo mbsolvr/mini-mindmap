@@ -133,13 +133,13 @@ def run(counts):
                     pan = stop_frames()
                     if script("return document.querySelector('.map').style.transform") == before:
                         raise RuntimeError("Canvas did not move during the pan measurement")
-                    before_zoom = script("return document.querySelector('.map').style.zoom")
+                    before_zoom = script("return document.querySelector('.map').dataset.zoom")
                     start_frames()
                     for _ in range(20):
                         request(api + "/goog/cdp/execute", {"cmd": "Input.dispatchMouseEvent", "params": {"type": "mouseWheel", "x": point[0], "y": point[1], "deltaX": 0, "deltaY": -15, "modifiers": 2}})
                         time.sleep(.04)
                     zoom = stop_frames()
-                    if script("return document.querySelector('.map').style.zoom") == before_zoom:
+                    if script("return document.querySelector('.map').dataset.zoom") == before_zoom:
                         raise RuntimeError("Canvas did not zoom during the wheel measurement")
                     drag = script("""const c=document.querySelector('.canvas').getBoundingClientRect();
                       for (const card of document.querySelectorAll('.node:not(.root-node)')) {

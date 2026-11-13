@@ -153,7 +153,7 @@ def run():
             wait_for(lambda: values(), "map canvas")
             assert script("return document.querySelector('main').dataset.theme") == 'default'
             assert script("return getComputedStyle(document.querySelector('.canvas')).backgroundColor") == 'rgb(255, 255, 255)'
-            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg,'image/svg+xml'); done(svg.querySelectorAll('g')[1].querySelector('rect').getAttribute('stroke-width'));});", "args": []}) == '6'
+            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg,'image/svg+xml'); done(svg.querySelectorAll('g')[1].querySelector('rect').getAttribute('stroke-width'));});", "args": []}) == '6'
             wait_for(lambda: script("return !!window.__miniTest.close"), 'close guard')
             script("document.querySelector('.tab-open').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
             wait_for(lambda: script("return !!document.querySelector('.tab-rename')"), 'tab rename before close')
@@ -236,7 +236,7 @@ def run():
             assert script("return getComputedStyle(document.querySelector('.branch'), '::before').display") == 'none'
             assert abs(float(script("return parseFloat(getComputedStyle(document.querySelector('.branch-layer path')).strokeWidth)")) - 4 / 3) < .01
             assert request(api + '/execute/async', {"script": """const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{
-              const m=document.querySelector('.map'), raw=makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg;
+              const m=document.querySelector('.map'), raw=makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg;
               const holder=document.createElement('div'); holder.style.cssText='position:fixed;left:-10000px'; holder.innerHTML=raw; document.body.appendChild(holder);
               const a=m.querySelector('.branch-layer path'), b=holder.querySelector('svg > g > path'), length=b.getTotalLength();
               const a0=a.getPointAtLength(0), b0=b.getPointAtLength(0);
@@ -279,7 +279,7 @@ def run():
             wait_for(lambda: parent_of("Alpha") == "Beta", "dragging a topic into another topic")
             assert script("return window.__nodeMotionCalls") > 0, 'ordinary text moves should still animate'
             wait_for(lambda: script("""const p=document.querySelector('.branch-layer path'), a=[...document.querySelectorAll('.node')].find(el=>el.querySelector('textarea')?.value==='Alpha');
-              const m=document.querySelector('.map'), z=Number(m.style.zoom), r=a.getBoundingClientRect(), origin=m.getBoundingClientRect(), end=p.getPointAtLength(p.getTotalLength());
+              const m=document.querySelector('.map'), z=Number(m.dataset.zoom), r=a.getBoundingClientRect(), origin=m.getBoundingClientRect(), end=p.getPointAtLength(p.getTotalLength());
               return Math.abs(end.x-(r.left-origin.left)/z)<2 && Math.abs(end.y-(r.bottom-origin.top)/z+parseFloat(getComputedStyle(a).borderBottomWidth)/2)<2;"""), 'curve follows the moved topic')
             wait_for(lambda: not script("return document.querySelector('.map').getAnimations({subtree:true}).some(a=>a.id==='node-move' && a.playState==='running')"), 'topic movement settles')
             previous_end = script("const p=document.querySelector('.branch-layer path'); return p.getPointAtLength(p.getTotalLength()).x")
@@ -287,7 +287,7 @@ def run():
               window.__branchMotion=card.animate([{transform:'translate(0,0)'},{transform:'translate(24px,12px)'}],{duration:400});
               window.__branchMotion.id='node-move'; document.querySelector('.map').dispatchEvent(new Event('floatingmove'));""")
             wait_for(lambda: script("""const p=document.querySelector('.branch-layer path'), a=[...document.querySelectorAll('.node')].find(el=>el.querySelector('textarea')?.value==='Alpha');
-              const m=document.querySelector('.map'), z=Number(m.style.zoom), r=a.getBoundingClientRect(), origin=m.getBoundingClientRect(), end=p.getPointAtLength(p.getTotalLength());
+              const m=document.querySelector('.map'), z=Number(m.dataset.zoom), r=a.getBoundingClientRect(), origin=m.getBoundingClientRect(), end=p.getPointAtLength(p.getTotalLength());
               return Math.abs(end.x-arguments[0])>4 && Math.abs(end.x-(r.left-origin.left)/z)<2 && Math.abs(end.y-(r.bottom-origin.top)/z+parseFloat(getComputedStyle(a).borderBottomWidth)/2)<2;""", previous_end), 'curve follows an animating topic')
             script("window.__branchMotion.cancel(); document.querySelector('.map').dispatchEvent(new Event('floatingmove'))")
             styles = script("""const card = name => [...document.querySelectorAll('.node')].find(el => el.querySelector('textarea')?.value === name);
@@ -411,7 +411,7 @@ def run():
             assert script("return getComputedStyle(document.querySelector('.summary-node .node')).animationName") == 'summary-delete-preview'
             assert script("return getComputedStyle(document.querySelector('.summary-bracket')).filter") != 'none'
             assert script("return [...document.querySelectorAll('.node')].filter(n=>['Alpha','Beta'].includes(n.querySelector('textarea')?.value)).map(n=>getComputedStyle(n).outlineColor)") == ordinary_outlines
-            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), raw=makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg, svg=new DOMParser().parseFromString(raw,'image/svg+xml'); done(raw.includes('Project summary') && raw.includes('Summary child') && [...svg.querySelectorAll('path')].some(p=>p.getAttribute('stroke')==='rgb(133, 156, 86)' && p.getAttribute('stroke-width')==='6'));});", "args": []})
+            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), raw=makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg, svg=new DOMParser().parseFromString(raw,'image/svg+xml'); done(raw.includes('Project summary') && raw.includes('Summary child') && [...svg.querySelectorAll('path')].some(p=>p.getAttribute('stroke')==='rgb(133, 156, 86)' && p.getAttribute('stroke-width')==='6'));});", "args": []})
             request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
                 {"type": "pointerMove", "duration": 0, "x": 20, "y": 80}]}]})
             wait_for(lambda: script("return document.querySelector('.summary-node .node').getAnimations().every(a=>a.playState!=='running')"), 'summary preview clears')
@@ -544,6 +544,13 @@ def run():
             keys('.relation-editor', '\ue007')
             wait_for(lambda: script("return document.querySelector('.relation-label')?.textContent") == 'Connection', 'connection label')
             assert script("return document.querySelectorAll('.node').length") == topic_count, 'connection Enter must not add topics'
+            for button, count in [('Zoom Out', 6), ('Zoom In', 10), ('Zoom Out', 4)]:
+                for _ in range(count):
+                    click(f'[aria-label="{button}"]')
+                wait_for(lambda: script("""const map=document.querySelector('.map'), z=Number(map.dataset.zoom);
+                  return [...map.querySelectorAll('.branch-layer,.relation-layer')].every(svg=>{
+                    const m=svg.getScreenCTM(); return m && Math.abs(m.a-z)<.001 && Math.abs(m.d-z)<.001;
+                  });"""), 'HTML topics and SVG connections use the same screen scale')
             # Real pointer gestures at 110% zoom: preview, one-step undo/redo, both handles, and Escape.
             script("document.querySelector('.relation-hit').dispatchEvent(new MouseEvent('click',{bubbles:true}))")
             wait_for(lambda: script("return document.querySelectorAll('.relation-controls circle').length") == 2, 'connection handles')
@@ -587,9 +594,9 @@ def run():
             script("document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'y',ctrlKey:true,bubbles:true,cancelable:true}))")
             wait_for(lambda: curve_path() == custom_curve, 'interrupted preview created no redo entry')
             # Export bounds must include a curve pulled outside the topic rectangles, but no handles.
-            request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{window.__curveExport=makeSvg(document.querySelector('.map'),document.querySelector('.canvas'),Number(document.querySelector('.map').style.zoom)); done(true);});", "args": []})
+            request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{window.__curveExport=makeSvg(document.querySelector('.map'),document.querySelector('.canvas'),Number(document.querySelector('.map').dataset.zoom)); done(true);});", "args": []})
             assert script("return window.__curveExport.svg.includes(arguments[0]) && !window.__curveExport.svg.includes('relation-controls')", custom_curve)
-            assert script("const map=document.querySelector('.map'), z=Number(map.style.zoom), p=document.querySelector('.relation-line').getBoundingClientRect(), r=map.getBoundingClientRect(); return window.__curveExport.height >= (Math.max(r.bottom,p.bottom)-Math.min(r.top,p.top))/z+63")
+            assert script("const map=document.querySelector('.map'), z=Number(map.dataset.zoom), p=document.querySelector('.relation-line').getBoundingClientRect(), r=map.getBoundingClientRect(); return window.__curveExport.height >= (Math.max(r.bottom,p.bottom)-Math.min(r.top,p.top))/z+63")
             click('[aria-label="Fit Canvas"]')
             wait_for(lambda: script("const p=document.querySelector('.relation-line').getBoundingClientRect(), c=document.querySelector('.canvas').getBoundingClientRect(); return p.left>=c.left && p.right<=c.right && p.top>=c.top && p.bottom<=c.bottom"), 'fit reshaped connection')
             label_x = script("const r = document.querySelector('.relation-label').getBoundingClientRect(); return r.left + r.width / 2")
@@ -633,18 +640,18 @@ def run():
             wheel_end = script("const r=document.querySelector('.map').getBoundingClientRect(); return [r.left,r.top]")
             assert abs(wheel_end[0] - wheel_origin[0] + 35) < 1 and abs(wheel_end[1] - wheel_origin[1] + 45) < 1, (wheel_origin, wheel_end)
             assert script("const e=new WheelEvent('wheel',{deltaY:2,ctrlKey:true,bubbles:true,cancelable:true}); document.querySelector('.canvas').dispatchEvent(e); return e.defaultPrevented")
-            view_one = script("const map = document.querySelector('.map'); return [map.style.zoom, map.style.transform]")
+            view_one = script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]")
             click('[aria-label="New tab"]')
             wait_for(lambda: script("return document.querySelectorAll('.tab').length") == 2, "second tab")
             assert script("return document.querySelectorAll('.tab-dirty').length") == 2
             assert script("return document.querySelector('.zoom-controls output').textContent") == '100%'
             click('[aria-label="Zoom Out"]')
-            view_two = script("const map = document.querySelector('.map'); return [map.style.zoom, map.style.transform]")
+            view_two = script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]")
             assert view_two[0] != view_one[0]
             click('.tab:first-child .tab-open')
-            wait_for(lambda: script("const map = document.querySelector('.map'); return [map.style.zoom, map.style.transform]") == view_one, 'restored first tab view')
+            wait_for(lambda: script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]") == view_one, 'restored first tab view')
             click('.tab:nth-child(2) .tab-open')
-            wait_for(lambda: script("const map = document.querySelector('.map'); return [map.style.zoom, map.style.transform]") == view_two, 'restored second tab view')
+            wait_for(lambda: script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]") == view_two, 'restored second tab view')
             original_tabs = script("return [...document.querySelectorAll('.tab .tab-open')].map(el => el.textContent)")
             coords = script("const tabs = document.querySelectorAll('.tab'); const a=tabs[0].getBoundingClientRect(), b=tabs[1].getBoundingClientRect(); return [Math.round(a.x+a.width/2), Math.round(a.y+a.height/2), Math.round(b.right-8), Math.round(b.y+b.height/2)]")
             request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
@@ -652,7 +659,7 @@ def run():
                 {"type": "pointerMove", "duration": 400, "x": coords[2], "y": coords[3]}, {"type": "pointerUp", "button": 0}]}]})
             wait_for(lambda: script("return [...document.querySelectorAll('.tab .tab-open')].map(el => el.textContent)") == original_tabs[::-1], 'reordered tabs')
             assert script("return document.querySelector('.tab.active .tab-open').textContent") == original_tabs[1]
-            assert script("const map = document.querySelector('.map'); return [map.style.zoom, map.style.transform]") == view_two
+            assert script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]") == view_two
             keys(editor, '\ue009z\ue000')
             wait_for(lambda: script("return [...document.querySelectorAll('.tab .tab-open')].map(el => el.textContent)") == original_tabs, 'undo tab reorder')
             keys(editor, '\ue009y\ue000')
@@ -693,7 +700,7 @@ def run():
             assert script("return getComputedStyle(document.querySelector('.children')).animationName") == 'branch-reveal'
             assert script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 2
             assert script("return getComputedStyle(document.querySelector('.branch'), '::before').display") == 'none'
-            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg,'image/svg+xml'); done([svg.querySelector('svg > rect').getAttribute('fill'), svg.querySelector('svg > g').getAttribute('stroke'), [...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length, [...svg.querySelectorAll('rect')].some(r=>r.getAttribute('fill')==='rgb(46, 36, 48)' && r.getAttribute('stroke')==='rgb(185, 165, 106)')]);});", "args": []}) == ['rgb(13, 16, 28)', '#55ccd6', 2, True]
+            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg,'image/svg+xml'); done([svg.querySelector('svg > rect').getAttribute('fill'), svg.querySelector('svg > g').getAttribute('stroke'), [...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length, [...svg.querySelectorAll('rect')].some(r=>r.getAttribute('fill')==='rgb(46, 36, 48)' && r.getAttribute('stroke')==='rgb(185, 165, 106)')]);});", "args": []}) == ['rgb(13, 16, 28)', '#55ccd6', 2, True]
             click('.settings-choice summary[aria-label="Language"]')
             click('.settings-choice[open] .settings-options button:nth-child(3)')
             wait_for(lambda: script("return document.documentElement.lang") == "zh-CN", "Chinese language")
@@ -1019,7 +1026,7 @@ def run():
             wait_for(lambda: script("return !!document.querySelector('.node-row.depth-2').style.getPropertyValue('--connector-offset')"), 'connector alignment')
             assert script("return getComputedStyle(document.querySelector('.node-row.depth-2 > .node')).paddingBottom") == '2px'
             alignment = """const row=document.querySelector('.node-row.depth-2'), card=row.querySelector(':scope > .node'), map=document.querySelector('.map');
-              const zoom=parseFloat(getComputedStyle(map).zoom) || 1, path=map.querySelector('.branch-layer path'), end=path.getPointAtLength(path.getTotalLength());
+              const zoom=parseFloat(map.dataset.zoom) || 1, path=map.querySelector('.branch-layer path'), end=path.getPointAtLength(path.getTotalLength());
               return Math.abs(map.getBoundingClientRect().top + end.y*zoom - (card.getBoundingClientRect().bottom-parseFloat(getComputedStyle(card).borderBottomWidth)*zoom/2));"""
             wait_for(lambda: script(alignment) < 1.5, 'curve aligns with the topic underline')
             script("document.querySelector('.node-row.depth-2 > .node').dispatchEvent(new MouseEvent('contextmenu', {bubbles:true, cancelable:true, clientX:300, clientY:300}))")
@@ -1217,13 +1224,13 @@ def run():
             assert script("const s=getComputedStyle(document.querySelector('.summary-node > .depth-2 > .node')); return [s.backgroundColor,s.color,s.borderBottomWidth]") == ['rgb(99, 123, 50)', 'rgb(255, 255, 255)', '0px']
             wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 6, 'curves include both sides, floating topics and summary children')
             assert script("""const map=document.querySelector('.map'), root=map.querySelector(':scope > .node-row > .node').getBoundingClientRect(),
-              left=document.querySelector('[data-drop-key=left]').getBoundingClientRect(), origin=map.getBoundingClientRect(), z=Number(map.style.zoom),
+              left=document.querySelector('[data-drop-key=left]').getBoundingClientRect(), origin=map.getBoundingClientRect(), z=Number(map.dataset.zoom),
               values=map.querySelector('.branch-layer path').getAttribute('d').split('M')[1].match(/-?(?:\\d*\\.)?\\d+/g).map(Number);
               return Math.abs(values[0]-(root.left-origin.left)/z)<1 && Math.abs(values.at(-2)-(left.right-origin.left)/z)<1 && Math.abs(values.at(-1)-(left.top+left.height/2-origin.top)/z)<1;""")
             for button, count in [('Zoom Out', 5), ('Zoom In', 10), ('Zoom Out', 5)]:
                 for _ in range(count): click(f'[aria-label="{button}"]')
                 wait_for(lambda: script("""const map=document.querySelector('.map'), left=document.querySelector('[data-drop-key=left]').getBoundingClientRect(),
-                  origin=map.getBoundingClientRect(), z=Number(map.style.zoom), values=map.querySelector('.branch-layer path').getAttribute('d').split('M')[1].match(/-?(?:\\d*\\.)?\\d+/g).map(Number);
+                  origin=map.getBoundingClientRect(), z=Number(map.dataset.zoom), values=map.querySelector('.branch-layer path').getAttribute('d').split('M')[1].match(/-?(?:\\d*\\.)?\\d+/g).map(Number);
                   return Math.abs(origin.left+values.at(-2)*z-left.right)<2 && Math.abs(origin.top+values.at(-1)*z-left.top-left.height/2)<2;"""), 'curve stays attached when zooming')
             geometry = script("return [...document.querySelectorAll('.node')].map(n=>{const s=getComputedStyle(n); return [s.padding,s.borderTopWidth,s.borderBottomWidth,s.borderRadius,s.fontSize,s.fontWeight,n.offsetWidth,n.offsetHeight]})")
             click('[aria-label="Menu"]')
@@ -1242,7 +1249,7 @@ def run():
               });""")
             for label, foreground, background in colors:
                 assert contrast_ratio(foreground, background) >= 4.5, (label, foreground, background)
-            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg,'image/svg+xml'); done([svg.querySelector('svg > rect').getAttribute('fill'), [...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length]);});", "args": []}) == ['rgb(13, 16, 28)', 6]
+            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg,'image/svg+xml'); done([svg.querySelector('svg > rect').getAttribute('fill'), [...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length]);});", "args": []}) == ['rgb(13, 16, 28)', 6]
             click('.settings-actions button:last-child')
             before_move = script("return document.querySelector('.branch-layer path').getAttribute('d')")
             point = script("const r=document.querySelector('.floating-topic > .node-row > .node').getBoundingClientRect(); return [Math.round(r.x+r.width/2),Math.round(r.y+r.height/2),50,window.innerHeight-80]")
@@ -1251,7 +1258,7 @@ def run():
             wait_for(lambda: script("return document.querySelector('.branch-layer path').getAttribute('d')") != before_move, 'curves follow floating topics')
             wait_for(lambda: script("""const map=document.querySelector('.map'), branches=[...map.querySelectorAll('.children > .branch')],
               branch=map.querySelector('.floating-topic .children > .branch'), index=branches.indexOf(branch), node=branch.querySelector(':scope > .node-row > .node').getBoundingClientRect(),
-              origin=map.getBoundingClientRect(), z=Number(map.style.zoom), values=map.querySelector('.branch-layer path').getAttribute('d').split('M')[index+1].match(/-?(?:\\d*\\.)?\\d+/g).map(Number);
+              origin=map.getBoundingClientRect(), z=Number(map.dataset.zoom), values=map.querySelector('.branch-layer path').getAttribute('d').split('M')[index+1].match(/-?(?:\\d*\\.)?\\d+/g).map(Number);
               return Math.abs(origin.left+values.at(-2)*z-node.left)<2 && Math.abs(origin.top+values.at(-1)*z-node.top-node.height/2)<2;"""), 'floating topic curve stays attached after moving')
             click('.root-node + .collapse')
             wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 1, 'collapsed branches hide their curves')
@@ -1264,9 +1271,9 @@ def run():
                 click(f'.structure-control .export-submenu button:nth-child({index})')
                 wait_for(lambda: script("return document.querySelector('.map').classList.contains(arguments[0])", 'layout-'+layout), f'{layout} layout')
                 wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == curves, f'{layout} branch curves')
-                assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg,'image/svg+xml'); done([...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length);});", "args": []}) == curves
+                assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg,'image/svg+xml'); done([...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length);});", "args": []}) == curves
                 assert request(api + '/execute/async', {"script": """const done=arguments[arguments.length-1]; requestAnimationFrame(()=>requestAnimationFrame(()=>import('/src/export.ts').then(({makeSvg})=>{
-                  const m=document.querySelector('.map'), raw=makeSvg(m,document.querySelector('.canvas'),Number(m.style.zoom)).svg;
+                  const m=document.querySelector('.map'), raw=makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg;
                   const holder=document.createElement('div'); holder.style.cssText='position:fixed;left:-10000px'; holder.innerHTML=raw; document.body.appendChild(holder);
                   const svg=holder.querySelector('svg'), b=[...svg.querySelectorAll('svg > g > path')].find(p=>p.getAttribute('d').includes('Q')),
                     a=document.createElementNS('http://www.w3.org/2000/svg','path'); a.setAttribute('d','M'+m.querySelector('.branch-layer path').getAttribute('d').split('M')[1]); svg.appendChild(a);
