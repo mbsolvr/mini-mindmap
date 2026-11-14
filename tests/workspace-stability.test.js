@@ -88,9 +88,9 @@ async function setup(t) {
   render();
   const initial = { ...richWorkspace(), active: 0 };
   result.ws.commit(initial, false);
-  result.ws.savedRef.current = serializeWorkspace(initial);
-  result.ws.updateDirty();
+  result.ws.savedRef.current = true;
   result.ws.markTabsSaved(initial);
+  result.ws.updateDirty();
   render();
   t.after(() => runtime.unmount());
   return { render, initial };
@@ -144,7 +144,7 @@ test("mixed edits undo and redo exactly, keep tab identity, and restore the save
     expected.push(structuredClone(next));
     if (i === 32) {
       saved = serializeWorkspace(next);
-      ws.savedRef.current = saved;
+      ws.savedRef.current = true;
       ws.markTabsSaved(next);
       ws.updateDirty();
     }

@@ -153,6 +153,21 @@ def run():
 
             wait_for(lambda: values(), "map canvas")
             assert script("return document.querySelector('main').dataset.theme") == 'default'
+            def canvas_center_point():
+                return script("""const map=document.querySelector('.map'), bounds=map.getBoundingClientRect(),
+                  viewport=document.querySelector('.canvas').getBoundingClientRect(), zoom=Number(map.dataset.zoom);
+                  return [(viewport.left+viewport.width/2-bounds.left)/zoom,
+                    (viewport.top+viewport.height/2-bounds.top)/zoom];""")
+            for tall in [False, True]:
+                script("document.querySelector('.map').style.minHeight=arguments[0] ? `${document.querySelector('.canvas').clientHeight+400}px` : ''", tall)
+                center_point = canvas_center_point()
+                click('[aria-label="Zoom In"]')
+                wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1.1', 'centered zoom in')
+                assert all(abs(a-b) < 0.1 for a, b in zip(canvas_center_point(), center_point)), ('zoom in anchor', tall)
+                click('[aria-label="Zoom Out"]')
+                wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1', 'centered zoom out')
+                assert all(abs(a-b) < 0.1 for a, b in zip(canvas_center_point(), center_point)), ('zoom out anchor', tall)
+            script("document.querySelector('.map').style.removeProperty('min-height')")
             assert script("return getComputedStyle(document.querySelector('.canvas')).backgroundColor") == 'rgb(255, 255, 255)'
             assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg,'image/svg+xml'); done(svg.querySelectorAll('g')[1].querySelector('rect').getAttribute('stroke-width'));});", "args": []}) == '6'
             wait_for(lambda: script("return !!window.__miniTest.close"), 'close guard')
@@ -1238,8 +1253,7 @@ def run():
                 'children': [topic('a'), topic('b'), topic('c'), topic('d'), topic('e'),
                     topic('parent', children=[topic('child')]), topic('left', side='left')],
             }}
-            script("sessionStorage.setItem('recovery',arguments[0])", json.dumps(rules))
-            request(api + '/refresh', {})
+            script("sessionStorage.setItem('recovery',arguments[0]); location.reload()", json.dumps(rules))
             wait_for(lambda: script("return !!document.querySelector('#confirm-title')"), 'summary rules recovery')
             click('.close-tab-actions .confirm-action')
             wait_for(lambda: script("return !!document.querySelector('[data-drop-key=a]')"), 'summary rules topics')
@@ -1277,7 +1291,8 @@ def run():
 
             nested = {'format': 'mini-mindmap', 'version': 2, 'type': 'map', 'tree': {
                 'key': 'root', 'text': 'Root', 'children': [topic('parent', children=[
-                    topic('a'), topic('b'), topic('summary', children=[topic('summary child')])]), topic('left', side='left')],
+                    topic('a', children=[topic('a-child', text='A long visible descendant for summary geometry')]),
+                    topic('b', children=[topic('b-child')]), topic('summary', children=[topic('summary child')])]), topic('left', side='left')],
                 'summaries': [{'key': 'summary', 'topics': ['a', 'b']}],
             }, 'floatingTopics': [{'x': 500, 'y': -180, 'tree': topic('floating', children=[topic('floating child')])}]}
             script("sessionStorage.setItem('recovery',arguments[0])", json.dumps(nested))
@@ -1286,7 +1301,38 @@ def run():
             click('.close-tab-actions .confirm-action')
             wait_for(lambda: script("return document.querySelector('.summary-node > .depth-2')?.style.getPropertyValue('--connector-offset')") == '0px', 'filled summary connector aligns to its center')
             assert script("const s=getComputedStyle(document.querySelector('.summary-node > .depth-2 > .node')); return [s.backgroundColor,s.color,s.borderBottomWidth]") == ['rgb(99, 123, 50)', 'rgb(255, 255, 255)', '0px']
-            wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 6, 'curves include both sides, floating topics and summary children')
+            wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 8, 'curves include both sides, floating topics and summary children')
+            wait_for(lambda: script("const b=document.querySelector('.summary-bracket').getBoundingClientRect(), c=document.querySelector('[data-drop-key=a-child]').getBoundingClientRect(); return b.left>=c.right-1"), 'summary bracket initially encloses the wide child')
+            expanded_bracket_left = script("return document.querySelector('.summary-bracket').getBoundingClientRect().left")
+            click('[data-drop-key=a] + .collapse')
+            wait_for(lambda: script("return document.querySelectorAll('.summary-group .node').length") == 2, 'partially collapsed group retains its summary and child')
+            wait_for(lambda: script("return document.querySelector('.summary-bracket').getBoundingClientRect().left < arguments[0]-1", expanded_bracket_left), 'summary bracket follows the remaining visible content')
+            assert not script("return !!document.querySelector('[data-drop-key=a-child]')")
+            assert script("return !!document.querySelector('[data-drop-key=b-child]')")
+            click('[data-drop-key=b] + .collapse')
+            wait_for(lambda: not script("return !!document.querySelector('.summary-group,.summary-bracket')"), 'collapsing every member hides the entire summary')
+            assert script("return !!document.querySelector('[data-drop-key=a]') && !!document.querySelector('[data-drop-key=b]')"), 'collapsed member cards remain visible'
+            assert not script("return !!document.querySelector('[data-drop-key=\"summary child\"]')"), 'hidden summary descendants are removed'
+            click('[data-drop-key=a] + .collapse')
+            wait_for(lambda: script("return document.querySelectorAll('.summary-group .node').length") == 2, 'expanding any member restores the summary and its child')
+            assert not script("return !!document.querySelector('[data-drop-key=b-child]')"), 'other members keep their collapsed state'
+            click('[data-drop-key=b] + .collapse')
+            wait_for(lambda: script("return !!document.querySelector('[data-drop-key=b-child]')"), 'all members expanded again')
+            for visible in [True, False, True, True]:
+                script("window.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true}))")
+                wait_for(lambda: script("return !!document.querySelector('.summary-group')") == visible, 'undo respects partial and complete collapse')
+            wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 8, 'undo restores the expanded group')
+            click('[data-drop-key=parent] + .collapse')
+            wait_for(lambda: not script("return !!document.querySelector('.summary-group')"), 'summary hides when all members are hidden by an ancestor')
+            click('[data-drop-key=parent] + .collapse')
+            wait_for(lambda: script("return document.querySelectorAll('.summary-group .node').length") == 2, 'summary returns with its visible members')
+            # Keep the following layout checks on their original six-curve sample.
+            for member in nested['tree']['children'][0]['children'][:2]:
+                member['children'] = []
+            script("sessionStorage.setItem('recovery',arguments[0]); location.reload()", json.dumps(nested))
+            wait_for(lambda: script("return !!document.querySelector('#confirm-title')"), 'original nested summary recovery')
+            click('.close-tab-actions .confirm-action')
+            wait_for(lambda: script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 6, 'original layout sample restored')
             assert script("""const map=document.querySelector('.map'), root=map.querySelector(':scope > .node-row > .node').getBoundingClientRect(),
               left=document.querySelector('[data-drop-key=left]').getBoundingClientRect(), origin=map.getBoundingClientRect(), z=Number(map.dataset.zoom),
               values=map.querySelector('.branch-layer path').getAttribute('d').split('M')[1].match(/-?(?:\\d*\\.)?\\d+/g).map(Number);
@@ -1444,6 +1490,17 @@ def run():
             assert script("return JSON.parse(sessionStorage.getItem('recovery')).tabs.at(-1).tree.children[0].labels[0]") == '标签'
             assert script("return window.__miniTest.title") == xmind_original_title
             assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/xmindXml.ts').then(({readXmindXml})=>{for(const xml of ['<!DOCTYPE xmap-content [<!ENTITY x SYSTEM \"file:///etc/passwd\">]><xmap-content/>','<xmap-content><broken>']) {try {readXmindXml(xml); done(false); return;} catch {}} done(true);});", "args": []}), 'unsafe and malformed XML rejected'
+            assert request(api + '/execute/async', {"script": """
+                const done = arguments[arguments.length - 1];
+                import('/src/xmindXml.ts').then(({readXmindXml}) => {
+                    let topic = '<topic id="f100"><title>Level 100</title></topic>';
+                    for (let i = 99; i >= 0; i--) topic = `<topic id="f${i}"><children><topics type="attached">${topic}</topics></children></topic>`;
+                    const xml = `<xmap-content><sheet><topic id="root"><children><topics type="detached">${topic}</topics></children></topic></sheet></xmap-content>`;
+                    let node = readXmindXml(xml)[0].rootTopic.children.detached[0], levels = 1;
+                    while (node.children?.attached?.length) { node = node.children.attached[0]; levels++; }
+                    done(levels);
+                }).catch(error => done(String(error)));
+            """, "args": []}) == 101, 'independent XML topic uses its own depth budget'
             before_new = values()
             before_new_tabs = script("return document.querySelectorAll('.tab').length")
             click('[aria-label="Menu"]')

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { hookRuntime, loadHook, deferred } from './helpers/hooks.mjs';
-import { newDocument, serializeWorkspace, workspaceFromDocument } from '../src/model.ts';
+import { newDocument, sameSnapshot, workspaceFromDocument } from '../src/model.ts';
 import { createXmind, readXmind } from '../src/xmind.ts';
 
 test('XMind import appends all sheets with undo, preserves file identity and blocks overlapping commands', async () => {
@@ -17,13 +17,13 @@ test('XMind import appends all sheets with undo, preserves file identity and blo
       'import { flushSync } from "react-dom";': 'const flushSync = fn => fn();',
       'import { useRecovery } from "./useRecovery.ts";': 'const useRecovery = () => ({ flush: async () => {} });',
     });
-    const workspaceRef = { current: initial }, savedRef = { current: serializeWorkspace(initial) }, pathRef = { current: '/tmp/current.minimap' }, dirtyRef = { current: false };
+    const workspaceRef = { current: initial }, savedRef = { current: true }, pathRef = { current: '/tmp/current.minimap' }, dirtyRef = { current: false };
     let selected;
     const hook = runtime.render(() => useDocumentFile({ workspace: initial, workspaceRef, savedRef, pathRef, dirtyRef,
       openingRef: { current: false }, historyRef: { current: [] }, redoRef: { current: [] },
       setWorkspace() {}, setStatus() {}, markTabsSaved() { assert.fail('import must remain unsaved'); },
       onOpened: key => { selected = key; }, recordHistory: snapshot => snapshots.push(snapshot),
-      updateDirty() { dirtyRef.current = serializeWorkspace(workspaceRef.current) !== savedRef.current; }, setError: error => { if (error) errors.push(error); } }));
+      updateDirty() { dirtyRef.current = !savedRef.current || !sameSnapshot(workspaceRef.current, initial); }, setError: error => { if (error) errors.push(error); } }));
     const saving = hook.importXmind();
     await hook.importXmind(); await hook.save(false); await hook.openCopy();
     assert.deepEqual(calls, ['import_xmind']);
@@ -34,14 +34,14 @@ test('XMind import appends all sheets with undo, preserves file identity and blo
     assert.equal(workspaceRef.current.active, 2);
     assert.equal(selected, imported.tabs[1].tree.key);
     assert.equal(pathRef.current, '/tmp/current.minimap');
-    assert.equal(savedRef.current, serializeWorkspace(initial));
+    assert.equal(savedRef.current, true);
     assert.equal(dirtyRef.current, true);
     assert.deepEqual(snapshots, [initial]);
     assert.deepEqual(errors, []);
   } finally { runtime.unmount(); globalThis.window = originalWindow; }
 });
 
-test('cancelled and invalid XMind imports leave contents, history and save association intact', async () => {
+test('cancelled, invalid and over-capacity XMind imports leave contents, history and save association intact', async () => {
   const originalWindow = globalThis.window;
   const runtime = hookRuntime(), errors = [];
   let result = null;
@@ -53,19 +53,23 @@ test('cancelled and invalid XMind imports leave contents, history and save assoc
     });
     const workspace = workspaceFromDocument(newDocument('Keep')), workspaceRef = { current: workspace }, pathRef = { current: '/tmp/keep.minimap' }, openingRef = { current: false };
     const hook = runtime.render(() => useDocumentFile({ workspace, workspaceRef, pathRef, openingRef,
-      savedRef: { current: '' }, dirtyRef: { current: true }, setWorkspace() { assert.fail('changed workspace'); },
+      savedRef: { current: false }, dirtyRef: { current: true }, setWorkspace() { assert.fail('changed workspace'); },
       setStatus() {}, setError: error => { if (error) errors.push(error); }, recordHistory() { assert.fail('changed history'); } }));
     await hook.importXmind();
     result = { contents: Buffer.from('broken').toString('base64') };
     await hook.importXmind();
     assert.match(errors[0], /XMind import failed:/);
+    const full = { ...workspace, tabs: Array.from({ length: 100 }, () => workspace.tabs[0]) };
+    result = { contents: (await createXmind(full)).contents };
+    await hook.importXmind();
+    assert.match(errors[1], /100 tabs/);
     assert.equal(workspaceRef.current, workspace);
     assert.equal(pathRef.current, '/tmp/keep.minimap');
     assert.equal(openingRef.current, false);
     assert.equal(hook.busyRef.current, false);
     hook.composingRef.current = true;
     await hook.importXmind();
-    assert.equal(errors.length, 1);
+    assert.equal(errors.length, 2);
   } finally { runtime.unmount(); globalThis.window = originalWindow; }
 });
 

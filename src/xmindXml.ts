@@ -1,6 +1,11 @@
 // XMind 8 XML is normalized to the same sheet/topic shape as modern content.json.
-export function readXmindXml(text: string, styleText?: string): unknown[] {
+import { validateTabCount, validateRelationCount } from "./limits.ts";
+import { checkParseBudget } from "./parseBudget.ts";
+
+export function readXmindXml(text: string, styleText?: string, budget = { count: 0 }): unknown[] {
   const invalid = () => { throw new Error("Invalid or unsupported XMind file"); };
+  checkParseBudget(text, true, budget);
+  if (styleText) checkParseBudget(styleText, true, budget);
   if (/<!DOCTYPE|<!ENTITY/i.test(text)) invalid();
   const document = new DOMParser().parseFromString(text, "application/xml");
   if (document.querySelector("parsererror") || document.documentElement.localName !== "xmap-content") invalid();
@@ -16,7 +21,8 @@ export function readXmindXml(text: string, styleText?: string): unknown[] {
     if (props) styles.set(style.getAttribute("id") || "", Object.fromEntries(Array.from(props.attributes).map(attr => [attr.name, attr.value])));
   }
   let count = 0;
-  function topic(node: Element, depth: number): Record<string, unknown> {
+  function topic(node: Element, depth: number, nesting = 0): Record<string, unknown> {
+    if (nesting > 512) throw new Error("Document exceeds the 100000 structure or 512 nesting limit");
     if (++count > 5000 || depth > 100) throw new Error("A map can contain at most 5000 objects and 100 levels");
     const result: Record<string, unknown> = { id: node.getAttribute("id"), title: content(node, "title") };
     for (const [xml, json] of [["structure-class", "structureClass"], ["branch", "branch"], ["xlink:href", "href"]])
@@ -32,7 +38,7 @@ export function readXmindXml(text: string, styleText?: string): unknown[] {
     const labels = element(node, "labels");
     if (labels) result.labels = elements(labels, "label").map(label => label.textContent || "");
     const children = element(node, "children");
-    if (children) result.children = Object.fromEntries(elements(children, "topics").map(group => [group.getAttribute("type") || "attached", elements(group, "topic").map(child => topic(child, depth + 1))]));
+    if (children) result.children = Object.fromEntries(elements(children, "topics").map(group => [group.getAttribute("type") || "attached", elements(group, "topic").map(child => topic(child, group.getAttribute("type") === "detached" ? 0 : depth + 1, nesting + 1))]));
     const summaries = element(node, "summaries");
     if (summaries) result.summaries = elements(summaries, "summary").map(summary => ({ id: summary.getAttribute("id"), topicId: summary.getAttribute("topic-id"), range: summary.getAttribute("range") }));
     for (const name of ["boundaries", "markers"])
@@ -40,12 +46,16 @@ export function readXmindXml(text: string, styleText?: string): unknown[] {
     if (element(node, "marker-refs")?.children.length) result.markers = [{}];
     return result;
   }
-  return elements(document.documentElement, "sheet").map(sheet => {
+  const sheets = elements(document.documentElement, "sheet");
+  validateTabCount(sheets.length);
+  return sheets.map(sheet => {
     count = 0;
     const root = element(sheet, "topic");
     if (!root) return invalid();
     const relationships = element(sheet, "relationships");
+    const relations = relationships ? elements(relationships, "relationship") : [];
+    validateRelationCount(relations.length);
     return { id: sheet.getAttribute("id"), title: content(sheet, "title"), rootTopic: topic(root, 0),
-      relationships: relationships ? elements(relationships, "relationship").map(relation => ({ id: relation.getAttribute("id"), end1Id: relation.getAttribute("end1"), end2Id: relation.getAttribute("end2"), title: content(relation, "title"), ...(element(relation, "control-points") ? { controlPoints: {} } : {}) })) : [] };
+      relationships: relations.map(relation => ({ id: relation.getAttribute("id"), end1Id: relation.getAttribute("end1"), end2Id: relation.getAttribute("end2"), title: content(relation, "title"), ...(element(relation, "control-points") ? { controlPoints: {} } : {}) })) };
   });
 }

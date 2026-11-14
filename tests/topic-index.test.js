@@ -20,6 +20,24 @@ test("immutable tree indexes cache lookups and invalidate changed trees and floa
   assert.equal(treeOwners(map).has("f"), false);
 });
 
+for (const [name, lookup] of [
+  ["topic index", (map) => treeIndex(map.tree)],
+  ["tree owners", treeOwners],
+]) {
+  test(`${name} retains four recent roots and rebuilds an evicted history version`, () => {
+    const maps = Array.from({ length: 5 }, (_, i) => ({
+      tree: { key: `r${i}`, children: [{ key: `child${i}`, children: [] }] },
+    }));
+    const indexes = maps.slice(0, 4).map(lookup);
+    assert.equal(lookup(maps[0]), indexes[0], 'reuse promotes the oldest root');
+    lookup(maps[4]);
+    assert.equal(lookup(maps[0]), indexes[0]);
+    const rebuilt = lookup(maps[1]);
+    assert.notEqual(rebuilt, indexes[1]);
+    assert.deepEqual(rebuilt, indexes[1], 'undo restores identical lookup results');
+  });
+}
+
 test("summary collision candidates match a complete scan", () => {
   const items = Array.from({ length: 5000 }, (_, i) => ({ top: i * 5, bottom: i * 5 + (i % 11) * 10 + 1 }));
   const query = verticalIndex(items);

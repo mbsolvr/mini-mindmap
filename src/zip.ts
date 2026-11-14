@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import { MAX_IMAGE_BYTES } from "./limits.ts";
 
 const INVALID = "Invalid or unsupported minimap file";
@@ -29,12 +30,12 @@ export function validateZip(contents: string, xmind = false): {
   const min = Math.max(0, bytes.length - 22 - 65535);
   while (
     end >= min &&
-    (view.getUint32(end, true) !== 0x06054b50 ||
-      end + 22 + view.getUint16(end + 20, true) !== bytes.length)
+    view.getUint32(end, true) !== 0x06054b50
   )
     end--;
   if (
     end < min ||
+    end + 22 + view.getUint16(end + 20, true) !== bytes.length ||
     view.getUint16(end + 4, true) ||
     view.getUint16(end + 6, true)
   )
@@ -119,4 +120,64 @@ export function validateZip(contents: string, xmind = false): {
   }
   if (offset !== end || (!xmind && !names.has("manifest.json"))) throw new Error(invalid);
   return { bytes, assetSizes, checksums };
+}
+
+// CRC and output limits are checked while inflating, including forged ZIP sizes.
+const crcTable = Uint32Array.from({ length: 256 }, (_, n) => {
+  for (let i = 0; i < 8; i++) n = n & 1 ? 0xedb88320 ^ (n >>> 1) : n >>> 1;
+  return n >>> 0;
+});
+export async function openZip(contents: string, xmind = false) {
+  const INVALID = xmind ? "Invalid or unsupported XMind file" : "Invalid or unsupported minimap file";
+  const { bytes, assetSizes: sizes, checksums } = validateZip(contents, xmind);
+  let zip: JSZip;
+  try {
+    zip = await JSZip.loadAsync(bytes);
+  } catch {
+    throw new Error(INVALID);
+  }
+  let totalRead = 0;
+  const cache = new Map<string, Promise<Uint8Array>>();
+  function read(path: string, limit = MAX_ARCHIVE_BYTES): Promise<Uint8Array> {
+    const size = sizes.get(path), file = zip.file(path);
+    if (size === undefined || !file) throw new Error(INVALID);
+    if (size > limit) throw new Error(limit === MAX_IMAGE_BYTES ? "Image exceeds 10 MB" : TOO_LARGE);
+    let promise = cache.get(path);
+    if (!promise) {
+      promise = new Promise((resolve, reject) => {
+        const chunks: Uint8Array[] = [];
+        let length = 0, crc = 0xffffffff;
+        // JSZip's declarations omit this documented streaming API.
+        const stream = (file as JSZip.JSZipObject & {
+          internalStream(type: "uint8array"): JSZip.JSZipStreamHelper<Uint8Array>;
+        }).internalStream("uint8array");
+        stream.on("data", (chunk: Uint8Array) => {
+          length += chunk.length;
+          totalRead += chunk.length;
+          if (length > size || totalRead > MAX_ARCHIVE_BYTES) {
+            stream.pause();
+            reject(new Error(TOO_LARGE));
+            return;
+          }
+          for (const byte of chunk) crc = crcTable[(crc ^ byte) & 255] ^ (crc >>> 8);
+          chunks.push(chunk);
+        });
+        stream.on("error", () => reject(new Error(INVALID)));
+        stream.on("end", () => {
+          if (length !== size || ((crc ^ 0xffffffff) >>> 0) !== checksums.get(path)) {
+            reject(new Error(INVALID));
+            return;
+          }
+          const result = new Uint8Array(length);
+          let offset = 0;
+          for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
+          resolve(result);
+        });
+        stream.resume();
+      });
+      cache.set(path, promise);
+    }
+    return promise;
+  }
+  return { zip, assetSizes: sizes, read };
 }

@@ -5,9 +5,13 @@ import {
   MAX_IMAGE_BYTES,
   validateMapLimits,
   validRelationControls,
+  validateTabCount,
+  validateRelationCount,
 } from "./limits.ts";
+import { checkParseBudget } from "./parseBudget.ts";
 
 export function parseDocument(text: string): Document {
+  checkParseBudget(text);
   const parsed: unknown = JSON.parse(text);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
     throw new Error("Invalid map file format or version");
@@ -185,6 +189,7 @@ export function parseDocument(text: string): Document {
     if (tree.relations != null) {
       if (!Array.isArray(tree.relations))
         throw new Error("Invalid connection data");
+      validateRelationCount(tree.relations.length);
       const ids = new Set<string>();
       for (const relation of tree.relations) {
         if (
@@ -259,6 +264,7 @@ export function parseDocument(text: string): Document {
       data.active >= data.tabs.length
     )
       throw new Error("Invalid workspace data");
+    validateTabCount(data.tabs.length);
     return {
       format: "mini-mindmap",
       version: 2,

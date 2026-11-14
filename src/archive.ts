@@ -1,8 +1,9 @@
 import JSZip from "jszip";
 import { parseDocument } from "./model.ts";
 import type { MapContent, MindNode } from "./types.ts";
-import { MAX_IMAGE_BYTES } from "./limits.ts";
-import { validateZip, MAX_ARCHIVE_BYTES, MAX_ENTRIES, TOO_LARGE } from "./zip.ts";
+import { MAX_IMAGE_BYTES, validateTabCount } from "./limits.ts";
+import { openZip, MAX_ARCHIVE_BYTES, MAX_ENTRIES, TOO_LARGE } from "./zip.ts";
+import { checkParseBudget } from "./parseBudget.ts";
 
 const INVALID = "Invalid or unsupported minimap file";
 const MAX_DOCUMENT_CHARS = 256 * 1024 * 1024;
@@ -100,15 +101,13 @@ export async function createArchive(contents: string): Promise<string> {
 }
 
 export async function readArchive(contents: string): Promise<string> {
-  const { bytes, assetSizes } = validateZip(contents);
-  let zip: JSZip;
-  try {
-    zip = await JSZip.loadAsync(bytes, { checkCRC32: true });
-  } catch {
-    throw new Error(INVALID);
+  const { assetSizes, read } = await openZip(contents);
+  const parseBudget = { count: 0 };
+  async function text(path: string): Promise<string> {
+    const result = new TextDecoder().decode(await read(path));
+    checkParseBudget(result, false, parseBudget);
+    return result;
   }
-  const manifestFile = zip.file("manifest.json");
-  if (!manifestFile) throw new Error(INVALID);
   let manifest: {
     format?: unknown;
     version?: unknown;
@@ -117,7 +116,7 @@ export async function readArchive(contents: string): Promise<string> {
     maps?: unknown;
   };
   try {
-    manifest = JSON.parse(await manifestFile.async("string"));
+    manifest = JSON.parse(await text("manifest.json"));
   } catch {
     throw new Error(INVALID);
   }
@@ -135,6 +134,7 @@ export async function readArchive(contents: string): Promise<string> {
     new Set(manifest.maps).size !== manifest.maps.length
   )
     throw new Error(INVALID);
+  validateTabCount(manifest.maps.length);
   const assets = new Map<string, Promise<string>>();
   async function readNode(node: MindNode): Promise<MindNode> {
     const children = await Promise.all(node.children.map(readNode));
@@ -146,11 +146,12 @@ export async function readArchive(contents: string): Promise<string> {
     if (!match) throw new Error(INVALID);
     let source = assets.get(path);
     if (!source) {
-      const file = zip.file(path);
-      if (!file) throw new Error(INVALID);
-      source = file
-        .async("base64")
-        .then((data) => `data:image/${mediaTypes[match[1]]};base64,${data}`);
+      source = read(path, MAX_IMAGE_BYTES).then((data) => {
+        let binary = "";
+        for (let offset = 0; offset < data.length; offset += 8192)
+          binary += String.fromCharCode(...data.subarray(offset, offset + 8192));
+        return `data:image/${mediaTypes[match[1]]};base64,${btoa(binary)}`;
+      });
       assets.set(path, source);
     }
     return { ...node, children, image: { ...node.image, src: await source } };
@@ -160,18 +161,16 @@ export async function readArchive(contents: string): Promise<string> {
   for (const path of manifest.maps) {
     if (typeof path !== "string" || !/^maps\/[1-9]\d*\.json$/.test(path))
       throw new Error(INVALID);
-    const file = zip.file(path);
-    if (!file) throw new Error(INVALID);
-    let text: string, data: Record<string, unknown>;
+    let json: string, data: Record<string, unknown>;
     try {
-      text = await file.async("string");
+      json = await text(path);
     } catch {
       throw new Error(INVALID);
     }
-    expandedSize += text.length;
+    expandedSize += json.length;
     if (expandedSize > MAX_DOCUMENT_CHARS) throw new Error(TOO_LARGE);
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(json);
     } catch {
       throw new Error(INVALID);
     }

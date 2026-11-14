@@ -19,7 +19,7 @@ const ARCHIVE_TOO_LARGE: &str = "Map file exceeds 256 MB";
 pub(crate) struct FileState {
     pub(crate) path: Option<PathBuf>,
     pub(crate) saved: Vec<u8>,
-    pub(crate) pending: Option<(PathBuf, Vec<u8>)>,
+    pub(crate) pending: Option<(PathBuf, u64)>,
 }
 #[derive(Default)]
 pub(crate) struct Store(pub(crate) Mutex<FileState>);

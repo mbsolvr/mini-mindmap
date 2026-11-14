@@ -1,7 +1,10 @@
 use crate::storage::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{
+    hash::{DefaultHasher, Hash, Hasher},
+    path::PathBuf,
+};
 use tauri::Manager;
 #[derive(Serialize)]
 pub(crate) struct OpenedFile {
@@ -15,6 +18,12 @@ pub(crate) struct SaveResult {
     warning: Option<String>,
 }
 
+fn archive_hash(contents: &[u8]) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    contents.hash(&mut hasher);
+    hasher.finish()
+}
+
 fn prepare_open(path: PathBuf, store: &Store) -> Result<OpenedFile, String> {
     let contents = read_archive(&path)?;
     if !contents.starts_with(b"PK\x03\x04") {
@@ -24,7 +33,7 @@ fn prepare_open(path: PathBuf, store: &Store) -> Result<OpenedFile, String> {
         .0
         .lock()
         .map_err(|_| "File state is unavailable")?
-        .pending = Some((path.clone(), contents.clone()));
+        .pending = Some((path.clone(), archive_hash(&contents)));
     Ok(OpenedFile {
         name: path
             .file_name()
@@ -93,20 +102,26 @@ pub(crate) async fn open_launched(
     .map_err(|error| error.to_string())?
 }
 
-#[tauri::command]
-pub(crate) fn accept_open(store: tauri::State<'_, Store>) -> Result<String, String> {
+fn accept_pending(store: &Store) -> Result<String, String> {
     let mut state = store.0.lock().map_err(|_| "File state is unavailable")?;
-    let (path, contents) = state
+    let (path, expected) = state
         .pending
         .take()
         .ok_or("No file is waiting to be opened")?;
-    // Accept only the bytes the frontend validated; the file may have changed while the dialog was open.
-    if read_archive(&path)? != contents {
+    let contents = read_archive(&path)?;
+    if archive_hash(&contents) != expected {
         return Err("The file changed while opening; open it again".into());
     }
     state.saved = contents;
     state.path = Some(path.clone());
     Ok(path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub(crate) async fn accept_open(app: tauri::AppHandle) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || accept_pending(&app.state::<Store>()))
+        .await
+        .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -202,14 +217,57 @@ mod tests {
         );
         assert_eq!(
             store.0.lock().unwrap().pending.as_ref().unwrap(),
-            &(path.clone(), bytes.to_vec())
+            &(path.clone(), archive_hash(bytes))
         );
         fs::write(&path, b"invalid").unwrap();
         assert!(prepare_open(path.clone(), &store).is_err());
         assert_eq!(
             store.0.lock().unwrap().pending.as_ref().unwrap(),
-            &(path, bytes.to_vec())
+            &(path, archive_hash(bytes))
         );
         fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn accepting_open_establishes_the_reread_bytes_as_the_save_baseline() {
+        let dir = temp_dir();
+        let path = dir.join("map.minimap");
+        let bytes = include_bytes!("../../tests/fixtures/reference.minimap");
+        fs::write(&path, bytes).unwrap();
+        let store = Store::default();
+        prepare_open(path.clone(), &store).unwrap();
+        assert_eq!(accept_pending(&store).unwrap(), path.to_string_lossy());
+        let state = store.0.lock().unwrap();
+        assert_eq!(state.path.as_ref(), Some(&path));
+        assert_eq!(state.saved, bytes);
+        assert!(state.pending.is_none());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_changed_or_deleted_pending_file_preserves_the_current_save_target() {
+        for deleted in [false, true] {
+            let dir = temp_dir();
+            let path = dir.join("next.minimap");
+            let previous = dir.join("current.minimap");
+            let bytes = include_bytes!("../../tests/fixtures/reference.minimap");
+            fs::write(&path, bytes).unwrap();
+            let store = Store(std::sync::Mutex::new(FileState {
+                path: Some(previous.clone()),
+                saved: bytes.to_vec(),
+                ..Default::default()
+            }));
+            prepare_open(path.clone(), &store).unwrap();
+            if deleted {
+                fs::remove_file(&path).unwrap();
+            } else {
+                fs::write(&path, b"external edit").unwrap();
+            }
+            assert!(accept_pending(&store).is_err());
+            let state = store.0.lock().unwrap();
+            assert_eq!(state.path.as_ref(), Some(&previous));
+            assert_eq!(state.saved, bytes);
+            fs::remove_dir_all(dir).unwrap();
+        }
     }
 }

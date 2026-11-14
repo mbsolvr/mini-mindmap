@@ -46,6 +46,7 @@ export default function SummaryLayer({
       setPositions((current) => (current.length ? [] : current));
       return;
     }
+    const content = { tree, floatingTopics };
     let frame = 0;
     function update() {
       if (!map) return;
@@ -80,9 +81,13 @@ export default function SummaryLayer({
         const rows = summary.topics.map((key) =>
           cards.get(key)?.closest<HTMLElement>(".node-row"),
         );
-        if (rows.some((row) => !row)) return null;
+        if (rows.every((row, index) => {
+          if (!row) return true;
+          const key = summary.topics[index], owner = treeForKey(content, key);
+          return owner && findNode(owner, key)?.collapsed;
+        })) return null;
         const members = rows.flatMap((row) =>
-          Array.from(row!.querySelectorAll<HTMLElement>("[data-drop-key]")),
+          row ? Array.from(row.querySelectorAll<HTMLElement>("[data-drop-key]")) : [],
         );
         return {
           summary,

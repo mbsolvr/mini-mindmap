@@ -12,6 +12,7 @@ import type { Workspace } from "../types.ts";
 import { invoke } from "../tauri.ts";
 import { createArchive, readArchive } from "../archive.ts";
 import { readXmind } from "../xmind.ts";
+import { validateTabCount } from "../limits.ts";
 import type { Confirmation } from "../components/ConfirmDialog.tsx";
 import { useRecovery } from "./useRecovery.ts";
 
@@ -19,7 +20,7 @@ interface Options {
   workspace: Workspace;
   setWorkspace: Dispatch<SetStateAction<Workspace>>;
   workspaceRef: RefObject<Workspace>;
-  savedRef: RefObject<string>;
+  savedRef: RefObject<boolean>;
   historyRef: RefObject<Workspace[]>;
   redoRef: RefObject<Workspace[]>;
   dirtyRef: RefObject<boolean>;
@@ -96,7 +97,7 @@ export function useDocumentFile({
     setError,
     restore: (recovered) => {
       workspaceRef.current = recovered;
-      savedRef.current = "";
+      savedRef.current = false;
       historyRef.current = [];
       redoRef.current = [];
       updateDirty();
@@ -139,7 +140,7 @@ export function useDocumentFile({
         setStatus("Save durability unconfirmed · Auto-save paused");
         return;
       }
-      savedRef.current = contents;
+      savedRef.current = true;
       markTabsSaved(snapshot);
       pausedRef.current = false;
       updateDirty();
@@ -199,7 +200,7 @@ export function useDocumentFile({
         pathRef.current = openedPath;
         setPath(openedPath);
         workspaceRef.current = data;
-        savedRef.current = serializeWorkspace(data);
+        savedRef.current = true;
         markTabsSaved(data);
         historyRef.current = [];
         redoRef.current = [];
@@ -215,11 +216,12 @@ export function useDocumentFile({
         const next = blank
           ? { ...ws, tabs: [imported], active: 0 }
           : { ...ws, tabs: [...ws.tabs, imported], active: ws.tabs.length };
+        validateTabCount(next.tabs.length);
         if (blank) {
           const openedPath = await invoke("accept_open");
           pathRef.current = openedPath;
           setPath(openedPath);
-          savedRef.current = serializeWorkspace(next);
+          savedRef.current = true;
           markTabsSaved(next);
         }
         workspaceRef.current = next;
@@ -258,12 +260,11 @@ export function useDocumentFile({
         action: "Discard and create",
       }))) return;
       const next = workspaceFromDocument(newDocument(title));
-      const contents = serializeWorkspace(next);
       await invoke("clear_target");
       pathRef.current = "";
       setPath("");
       workspaceRef.current = next;
-      savedRef.current = contents;
+      savedRef.current = true;
       markTabsSaved(next);
       historyRef.current = [];
       redoRef.current = [];
@@ -294,6 +295,7 @@ export function useDocumentFile({
       if (!file) return;
       const { workspace: imported, limited } = await readXmind(file.contents);
       const previous = workspaceRef.current;
+      validateTabCount(previous.tabs.length + imported.tabs.length);
       const next = { ...previous, tabs: [...previous.tabs, ...imported.tabs], active: previous.tabs.length + imported.active };
       recordHistory(previous);
       workspaceRef.current = next;

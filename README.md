@@ -35,7 +35,13 @@ Download a package for your platform from [Releases](https://github.com/mbsolvr/
 
 Click a topic to select it, drag it to rearrange the map, and double-click to edit. Use `Tab` to add a child topic. Press `Enter` to finish editing, then `Enter` again to add a sibling topic. Drag a topic onto empty canvas to make it independent. Right-click the canvas to add independent topics or floating notes.
 
-To add a summary, select at least two topics with Ctrl-click (Command-click on macOS) or by dragging a selection box, then choose **Add summary** from the Edit menu or the selected topics' context menu. Summary ranges cannot overlap, and a summary or its children cannot be included in another summary. Edit the summary text directly; use its delete button to remove it, its child topics, and their connections. A summary is hidden while any of its topics is collapsed, and reappears when they are visible again. Moving a grouped topic into its own summary makes it a child and removes it from the bracket; at least one grouped topic must remain outside the summary.
+Zoom controls, keyboard shortcuts and Ctrl+wheel zoom around the center of the visible canvas, keeping the content at that point fixed even when the map is taller than the canvas.
+
+To add a summary, select at least two topics with Ctrl-click (Command-click on macOS) or by dragging a selection box, then choose **Add summary** from the Edit menu or the selected topics' context menu. Summary ranges cannot overlap, and a summary or its children cannot be included in another summary. Edit the summary text directly; use its delete button to remove it, its child topics, and their connections.
+
+A summary remains visible when some grouped topics are collapsed or hidden, and its bracket follows the visible member cards and their visible descendants. The summary, its bracket and its children hide only when every member is collapsed or hidden; they return when any member is expanded and visible. Folding a group preserves its summary data.
+
+Moving a grouped topic into its own summary makes it a child and removes it from the bracket; at least one grouped topic must remain outside the summary.
 
 Use **Save** to choose a `.minimap` file. When enabled, auto-save keeps the file up to date. Use the switch in the status bar to turn auto-save on or off. A separate recovery draft can restore unsaved work after an unexpected exit.
 
@@ -43,7 +49,7 @@ Choose **New workspace** in the application menu to close the current workspace 
 
 On Windows, double-click a `.minimap` file to open it in Mini Mindmap. If the app is already running, it opens the file in the existing window.
 
-Maps support up to 5,000 objects and 100 levels per tab, and images up to 10 MiB each. A `.minimap` archive is limited to 256 MiB and 10,000 entries; its expanded document is limited to 268,435,456 UTF-16 code units. The same limits apply when saving and opening files.
+Workspaces support up to 100 tabs. Each map supports up to 5,000 objects, 100 levels and 10 connections, and images up to 10 MiB each. A `.minimap` archive is limited to 256 MiB and 10,000 entries; its expanded document is limited to 268,435,456 UTF-16 code units. JSON parsing is limited to 100,000 objects/arrays and 512 nested containers; XMind XML uses a 100,000 markup delimiter budget, shared with its styles. Oversized files are rejected without truncating data. These limits apply when saving and opening files.
 
 ## Keyboard shortcuts
 

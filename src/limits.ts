@@ -1,6 +1,18 @@
 import type { MapContent, MindNode, RelationControls } from "./types.ts";
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+export const MAX_TABS = 100;
+export const MAX_RELATIONS = 10;
+
+export function validateTabCount(count: number): void {
+  if (count > MAX_TABS)
+    throw new Error("A workspace can contain at most 100 tabs");
+}
+
+export function validateRelationCount(count: number): void {
+  if (count > MAX_RELATIONS)
+    throw new Error("A map can contain at most 10 connections");
+}
 
 export function validRelationControls(
   value: unknown,
@@ -19,6 +31,7 @@ export function validRelationControls(
 }
 
 export function validateMapLimits(map: MapContent): void {
+  validateRelationCount(map.tree.relations?.length || 0);
   if ((map.tree.summaries?.length || 0) > 5000)
     throw new Error("Invalid summary data");
   let count = map.floatingNotes?.length || 0;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import JSZip from 'jszip';
 import { createXmind, readXmind } from '../src/xmind.ts';
 import { createArchive, readArchive } from '../src/archive.ts';
-import { richWorkspace, image, wideMap } from './samples.mjs';
+import { richWorkspace, image, wideMap, deepMap } from './samples.mjs';
 
 async function encode(sheets, resources = {}, options = {}) {
   const zip = new JSZip();
@@ -11,6 +11,51 @@ async function encode(sheets, resources = {}, options = {}) {
   for (const [path, data] of Object.entries(resources)) zip.file(path, data, { createFolders: false });
   return zip.generateAsync({ type: 'base64', compression: 'DEFLATE', ...options });
 }
+
+test('100 sheets import and save normally; a 101st sheet is rejected', async () => {
+  const sheets = Array.from({ length: 100 }, (_, i) => ({ id: `s${i}`, rootTopic: { id: 'root', title: `Sheet ${i}` } }));
+  const { workspace } = await readXmind(await encode(sheets));
+  assert.equal(workspace.tabs.length, 100);
+  assert.deepEqual(JSON.parse(await readArchive(await createArchive(JSON.stringify(workspace)))), workspace);
+  sheets.push({ id: 'extra', rootTopic: { id: 'root', title: 'Extra' } });
+  await assert.rejects(readXmind(await encode(sheets)), /100 tabs/);
+});
+
+test('10 connections round trip; an 11th connection is rejected on import and export', async () => {
+  const sheet = { rootTopic: { id: 'root', title: 'Root', children: { attached:
+    Array.from({ length: 11 }, (_, i) => ({ id: `n${i}`, title: `Topic ${i}` })) } },
+    relationships: Array.from({ length: 10 }, (_, i) => ({ id: `rel${i}`, end1Id: 'root', end2Id: `n${i}`, title: '' })) };
+  const { workspace } = await readXmind(await encode([sheet]));
+  assert.equal(workspace.tabs[0].tree.relations.length, 10);
+  assert.deepEqual((await readXmind((await createXmind(workspace)).contents)).workspace, workspace);
+  sheet.relationships.push({ id: 'extra', end1Id: 'root', end2Id: 'n10', title: '' });
+  await assert.rejects(readXmind(await encode([sheet])), /10 connections/);
+  workspace.tabs[0].tree.relations.push({ relKey: 'extra', from: 'root', to: 'n10', label: '' });
+  await assert.rejects(createXmind(workspace), /10 connections/);
+  await assert.rejects(createArchive(JSON.stringify(workspace)), /10 connections/);
+});
+
+test('independent topics retain their full 100-level depth on round trip', async () => {
+  const workspace = { format: 'mini-mindmap', version: 2, type: 'workspace', active: 0,
+    tabs: [{ tree: { key: 'root', text: 'Root', children: [] }, floatingTopics: [{ x: 200, y: 0, tree: deepMap(100).tree }] }] };
+  assert.deepEqual((await readXmind((await createXmind(workspace)).contents)).workspace, workspace);
+});
+
+test('export keeps web links and reports unsupported file links as limited', async () => {
+  const workspace = { format: 'mini-mindmap', version: 2, type: 'workspace', active: 0,
+    tabs: [{ tree: { key: 'root', text: 'Notes', link: { url: 'file:///tmp/notes.md' }, children: [
+      { key: 'http', text: 'HTTP', children: [], link: { url: 'http://example.com', label: 'Example' } },
+      { key: 'https', text: 'HTTPS', children: [], link: { url: 'https://example.com' } },
+    ] } }] };
+  const exported = await createXmind(workspace);
+  assert.equal(exported.limited, true);
+  const zip = await JSZip.loadAsync(exported.contents, { base64: true });
+  assert.equal(JSON.parse(await zip.file('content.json').async('string'))[0].rootTopic.href, undefined);
+  const { workspace: restored } = await readXmind(exported.contents);
+  assert.equal(restored.tabs[0].tree.link, undefined);
+  assert.deepEqual(restored.tabs[0].tree.children, workspace.tabs[0].tree.children);
+  assert.equal(workspace.tabs[0].tree.link.url, 'file:///tmp/notes.md');
+});
 
 test('all sheets, shared images and native fields survive XMind and minimap round trips', async () => {
   const workspace = richWorkspace();

@@ -19,6 +19,10 @@ test("workspace commits record history and ignore changes while opening", async 
     const original = hook.workspaceRef.current, key = original.tabs[0].tree.key;
     assert.equal(hook.changeMap(map => map), false);
     assert.equal(hook.historyRef.current.length, 0);
+    assert.equal(hook.commit({ ...original, tabs: Array(101).fill(original.tabs[0]) }), false);
+    assert.match(error, /100 tabs/);
+    assert.equal(hook.workspaceRef.current, original);
+    assert.equal(hook.historyRef.current.length, 0);
     const children = Array.from({ length: 5000 }, (_, i) => ({ key: String(i), text: "", children: [] }));
     assert.equal(hook.changeTree(key, node => ({ ...node, children })), false);
     assert.match(error, /5000/);

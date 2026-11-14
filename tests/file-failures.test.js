@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import JSZip from "jszip";
 import { hookRuntime, loadHook, deferred } from "./helpers/hooks.mjs";
 import { createArchive } from "../src/archive.ts";
-import { serializeWorkspace, newDocument } from "../src/model.ts";
+import { serializeWorkspace, newDocument, sameSnapshot } from "../src/model.ts";
 import { richWorkspace } from "./samples.mjs";
 
 async function setup(t, invoke) {
@@ -15,7 +15,8 @@ async function setup(t, invoke) {
     opened = [];
   const workspace = richWorkspace(),
     workspaceRef = { current: workspace };
-  const savedRef = { current: serializeWorkspace(workspace) },
+  let savedWorkspace = workspace;
+  const savedRef = { current: true },
     dirtyRef = { current: false },
     pathRef = { current: "/tmp/original.minimap" };
   const historyRef = { current: [workspace] },
@@ -54,20 +55,20 @@ async function setup(t, invoke) {
     setWorkspace() {},
     setStatus() {},
     onOpened: (key) => opened.push(key),
-    markTabsSaved: (snapshot) => marked.push(snapshot),
+    markTabsSaved: (snapshot) => { savedWorkspace = snapshot; marked.push(snapshot); },
     setError: (value) => {
       if (value) errors.push(value);
     },
     confirm: async () => true,
     updateDirty() {
       dirtyRef.current =
-        serializeWorkspace(workspaceRef.current) !== savedRef.current;
+        !savedRef.current || !sameSnapshot(workspaceRef.current, savedWorkspace);
     },
   };
   const hook = runtime.render(() => useDocumentFile(options));
   const unchanged = () => {
     assert.equal(workspaceRef.current, workspace);
-    assert.equal(savedRef.current, serializeWorkspace(workspace));
+    assert.equal(savedRef.current, true);
     assert.equal(pathRef.current, "/tmp/original.minimap");
     assert.deepEqual(historyRef.current, [workspace]);
     assert.deepEqual(redoRef.current, [workspace]);
@@ -124,7 +125,7 @@ for (const message of [
     };
     h.dirtyRef.current = true;
     await h.hook.save(false);
-    assert.equal(h.savedRef.current, serializeWorkspace(original));
+    assert.equal(h.savedRef.current, true);
     assert.equal(h.pathRef.current, "/tmp/original.minimap");
     assert.equal(h.workspaceRef.current.tabs[1].tree.text, "Unsaved change");
     assert.equal(h.hook.pausedRef.current, true);
@@ -184,7 +185,7 @@ for (const kind of ["workspace", "map"]) {
       h.workspace.tabs = [{ tree: newDocument().tree }];
       h.workspace.active = 0;
       h.pathRef.current = "";
-      h.savedRef.current = serializeWorkspace(h.workspace);
+      h.savedRef.current = true;
     }
     const before = {
       workspace: h.workspaceRef.current,
@@ -243,7 +244,7 @@ for (const title of [
     h.workspace.tabs = [{ tree: newDocument(title).tree }];
     h.workspace.active = 0;
     h.pathRef.current = "";
-    h.savedRef.current = serializeWorkspace(h.workspace);
+    h.savedRef.current = true;
     await h.hook.openCopy();
     assert.equal(h.workspaceRef.current.tabs.length, 1);
     assert.equal(h.workspaceRef.current.tabs[0].tree.text, "Imported");

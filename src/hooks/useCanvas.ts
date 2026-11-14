@@ -50,7 +50,21 @@ export function useCanvas({
       previous = views.current.get(key) || { zoom: 1, pan: { x: 0, y: 0 } };
     const next = typeof value === "function" ? value(previous.zoom) : value;
     if (next !== previous.zoom) {
-      views.current.set(key, { ...previous, zoom: next });
+      let pan = previous.pan;
+      const map = mapRef.current, canvas = canvasRef.current;
+      if (map && canvas) {
+        const bounds = map.getBoundingClientRect(), viewport = canvas.getBoundingClientRect();
+        const rendered = new DOMMatrix(map.style.transform);
+        const ratio = next / previous.zoom;
+        // Compensate for the left-center CSS origin, including changes not rendered yet.
+        const originX = bounds.left + previous.pan.x - rendered.e;
+        const originY = bounds.top + bounds.height / 2 + previous.pan.y - rendered.f;
+        pan = {
+          x: previous.pan.x + (viewport.left + viewport.width / 2 - originX) * (1 - ratio),
+          y: previous.pan.y + (viewport.top + viewport.height / 2 - originY) * (1 - ratio),
+        };
+      }
+      views.current.set(key, { ...previous, zoom: next, pan });
       refresh((n) => n + 1);
     }
   }

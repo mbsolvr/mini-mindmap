@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import type { RefObject } from "react";
 import {
   newDocument,
-  serializeWorkspace,
   sameSnapshot,
   tabViewKey,
   tabWithContent,
@@ -12,7 +11,7 @@ import {
   updateNode,
   workspaceFromDocument,
 } from "../model.ts";
-import { validateMapLimits } from "../limits.ts";
+import { validateMapLimits, validateTabCount } from "../limits.ts";
 import { hasSummaryConflict, settleSummaries } from "../summaries.ts";
 import type { MapContent, MindNode, Workspace } from "../types.ts";
 
@@ -26,8 +25,7 @@ export function useWorkspace(
     workspaceFromDocument(newDocument(initialTitle)),
   );
   const workspaceRef = useRef(workspace);
-  const [initialSaved] = useState(() => serializeWorkspace(workspace));
-  const savedRef = useRef(initialSaved);
+  const savedRef = useRef(true);
   const savedWorkspace = useRef(workspace);
   const historyRef = useRef<Workspace[]>([]);
   const redoRef = useRef<Workspace[]>([]);
@@ -76,6 +74,7 @@ export function useWorkspace(
   function commit(next: Workspace, record = true) {
     if (openingRef.current || next === workspaceRef.current) return false;
     try {
+      validateTabCount(next.tabs.length);
       next.tabs.forEach((tab) => {
         if (!workspaceRef.current.tabs.includes(tab)) validateMapLimits(tab);
       });

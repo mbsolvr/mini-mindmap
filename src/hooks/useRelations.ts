@@ -8,7 +8,7 @@ import type {
   RelationControls,
   Workspace,
 } from "../types.ts";
-import { validRelationControls } from "../limits.ts";
+import { MAX_RELATIONS, validRelationControls } from "../limits.ts";
 
 type Context = { key: string; x: number; y: number };
 export type RelationContext = {
@@ -84,6 +84,10 @@ export function useRelations({
       tree = map.tree;
     if (tabViewKey(map) !== sourceView.current) {
       setRelationSource(null);
+      return;
+    }
+    if ((tree.relations?.length || 0) >= MAX_RELATIONS) {
+      setStatus("A map can contain at most 10 connections");
       return;
     }
     const next = addRelation(

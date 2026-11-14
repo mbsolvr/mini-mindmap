@@ -107,7 +107,7 @@ export function useExports({
         ),
       );
       if (document.fonts) await document.fonts.ready;
-      window.print();
+      await window.print();
       setStatus("Choose Save to File in the print dialog to export a PDF");
     } catch (cause) {
       setPrintDocument(null);

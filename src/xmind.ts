@@ -1,7 +1,8 @@
 import JSZip from "jszip";
 import { makeKey, parseDocument } from "./model.ts";
-import { MAX_IMAGE_BYTES } from "./limits.ts";
-import { validateZip, MAX_ARCHIVE_BYTES, MAX_ENTRIES, TOO_LARGE } from "./zip.ts";
+import { MAX_IMAGE_BYTES, validateTabCount, validateRelationCount } from "./limits.ts";
+import { checkParseBudget } from "./parseBudget.ts";
+import { openZip, validateZip, MAX_ARCHIVE_BYTES, MAX_ENTRIES, TOO_LARGE } from "./zip.ts";
 import { readXmindXml } from "./xmindXml.ts";
 import { resolveLayout } from "./layouts.ts";
 import type { MapContent, MindNode, TextStyle, Workspace } from "./types.ts";
@@ -31,6 +32,9 @@ function title(value: unknown): string {
   if (typeof value !== "string") throw new Error(INVALID);
   return value;
 }
+function isWebLink(url: string): boolean {
+  return /^https?:\/\//i.test(url) && !/[\u0000-\u001f\u007f]/.test(url);
+}
 function properties(style: TextStyle | undefined): Record<string, string | number> {
   return {
     ...(style?.color !== undefined ? { "fo:color": style.color } : {}),
@@ -54,58 +58,11 @@ function textStyle(value: unknown): TextStyle | undefined {
   return Object.keys(result).length ? result : undefined;
 }
 
-// CRC and output limits are checked while inflating, including forged ZIP sizes.
-const crcTable = Uint32Array.from({ length: 256 }, (_, n) => {
-  for (let i = 0; i < 8; i++) n = n & 1 ? 0xedb88320 ^ (n >>> 1) : n >>> 1;
-  return n >>> 0;
-});
 export async function readXmind(contents: string): Promise<{ workspace: Workspace; limited: boolean }> {
-  const { bytes, assetSizes: sizes, checksums } = validateZip(contents, true);
-  const zip = await JSZip.loadAsync(bytes);
-  let totalRead = 0, documentChars = 0, expandedImages = 0, limited = false;
-  const cache = new Map<string, Promise<Uint8Array>>();
+  const { zip, read } = await openZip(contents, true);
+  let documentChars = 0, expandedImages = 0, limited = false;
+  const parseBudget = { count: 0 };
   const imageSources = new Map<string, string | null>();
-  function read(path: string, limit = MAX_ARCHIVE_BYTES): Promise<Uint8Array> {
-    const size = sizes.get(path), file = zip.file(path);
-    if (size === undefined || !file) throw new Error(INVALID);
-    if (size > limit) throw new Error(limit === MAX_IMAGE_BYTES ? "Image exceeds 10 MB" : TOO_LARGE);
-    let promise = cache.get(path);
-    if (!promise) {
-      promise = new Promise((resolve, reject) => {
-        const chunks: Uint8Array[] = [];
-        let length = 0, crc = 0xffffffff;
-        // JSZip's declarations omit this documented streaming API.
-        const stream = (file as JSZip.JSZipObject & {
-          internalStream(type: "uint8array"): JSZip.JSZipStreamHelper<Uint8Array>;
-        }).internalStream("uint8array");
-        stream.on("data", (chunk: Uint8Array) => {
-          length += chunk.length;
-          totalRead += chunk.length;
-          if (length > size || totalRead > MAX_ARCHIVE_BYTES) {
-            stream.pause();
-            reject(new Error(TOO_LARGE));
-            return;
-          }
-          for (const byte of chunk) crc = crcTable[(crc ^ byte) & 255] ^ (crc >>> 8);
-          chunks.push(chunk);
-        });
-        stream.on("error", () => reject(new Error(INVALID)));
-        stream.on("end", () => {
-          if (length !== size || ((crc ^ 0xffffffff) >>> 0) !== checksums.get(path)) {
-            reject(new Error(INVALID));
-            return;
-          }
-          const result = new Uint8Array(length);
-          let offset = 0;
-          for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
-          resolve(result);
-        });
-        stream.resume();
-      });
-      cache.set(path, promise);
-    }
-    return promise;
-  }
   async function text(path: string): Promise<string> {
     const result = new TextDecoder().decode(await read(path));
     documentChars += result.length;
@@ -113,14 +70,19 @@ export async function readXmind(contents: string): Promise<{ workspace: Workspac
     return result;
   }
   async function json(path: string): Promise<unknown> {
-    try { return JSON.parse(await text(path)); }
+    try {
+      const result = await text(path);
+      checkParseBudget(result, false, parseBudget);
+      return JSON.parse(result);
+    }
     catch (error) { if (error instanceof SyntaxError) throw new Error(INVALID); throw error; }
   }
   const xmlPath = zip.file("content.xml") ? "content.xml" : "/content.xml";
   const sheets = array(zip.file("content.json") ? await json("content.json") :
     zip.file(xmlPath) ? readXmindXml(await text(xmlPath),
-      zip.file("styles.xml") ? await text("styles.xml") : undefined) : null);
+      zip.file("styles.xml") ? await text("styles.xml") : undefined, parseBudget) : null);
   if (!sheets.length) throw new Error(INVALID);
+  validateTabCount(sheets.length);
   const tabs: MapContent[] = [];
   const sheetIds: string[] = [];
   for (const rawSheet of sheets) {
@@ -167,7 +129,7 @@ export async function readXmind(contents: string): Promise<{ workspace: Workspac
       }
       if (topic.href != null) {
         const url = title(topic.href);
-        if (/^https?:\/\//i.test(url) && !/[\u0000-\u001f\u007f]/.test(url))
+        if (isWebLink(url))
           node.link = { url, ...(typeof native?.linkLabel === "string" ? { label: native.linkLabel } : {}) };
         else limited = true;
       }
@@ -211,7 +173,7 @@ export async function readXmind(contents: string): Promise<{ workspace: Workspac
         });
       }
       for (const raw of array(children.detached)) {
-        const floating = object(raw), tree = walk(raw, depth + 1);
+        const floating = object(raw), tree = walk(raw, 0);
         const position = object(floating.position || { x: 240, y: (map.floatingTopics?.length || 0) * 100 });
         const x = position.x as number, y = position.y as number;
         const data = floating[LOCAL] == null ? null : object(floating[LOCAL]);
@@ -249,7 +211,9 @@ export async function readXmind(contents: string): Promise<{ workspace: Workspac
     map.tree = tree;
     if (!object(sheet.rootTopic)[LOCAL] && sheet.title != null) tree.tabTitle = title(sheet.title);
     if (nativeSheet?.summaries !== undefined) tree.summaries = nativeSheet.summaries as MindNode["summaries"];
-    const relations = array(sheet.relationships).map(raw => {
+    const relationships = array(sheet.relationships);
+    validateRelationCount(relationships.length);
+    const relations = relationships.map(raw => {
       const relation = object(raw), native = relation[LOCAL] == null ? null : object(relation[LOCAL]);
       if (relation.controlPoints && !native) limited = true;
       return { relKey: title(relation.id) || makeKey(), from: title(relation.end1Id), to: title(relation.end2Id), label: title(relation.title),
@@ -323,7 +287,9 @@ export async function createXmind(workspace: Workspace): Promise<{ contents: str
       for (const field of ["collapsed", "side", "layout", "template", "tabTitle"] as const)
         if (node[field] !== undefined) native[field] = node[field];
       if (node.image?.caption !== undefined) native.imageCaption = node.image.caption;
-      if (node.link?.label !== undefined) native.linkLabel = node.link.label;
+      const link = node.link && isWebLink(node.link.url) ? node.link : undefined;
+      if (node.link && !link) limited = true;
+      if (link?.label !== undefined) native.linkLabel = link.label;
       const ordered = children(node);
       const attached = ordered.filter(child => !standardKeys.has(child.key));
       const summary = ordered.filter(child => standardKeys.has(child.key));
@@ -339,7 +305,7 @@ export async function createXmind(workspace: Workspace): Promise<{ contents: str
         ...(node.textStyle ? { style: { properties: properties(node.textStyle) } } : {}),
         ...(node.notes !== undefined ? { notes: { plain: { content: node.notes } } } : {}),
         ...(node.labels ? { labels: node.labels } : {}),
-        ...(node.link ? { href: node.link.url } : {}),
+        ...(link ? { href: link.url } : {}),
         ...(node.image ? { image: { src: writeImage(node.image.src) } } : {}),
       };
       const ranges = standard.get(node.key);

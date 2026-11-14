@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { hookRuntime, loadHook, deferred } from './helpers/hooks.mjs';
-import { serializeWorkspace } from '../src/model.ts';
+import { sameSnapshot } from '../src/model.ts';
 import { richWorkspace } from './samples.mjs';
 
 async function setup(t, config = {}) {
   const previous = { window: globalThis.window, document: globalThis.document, HTMLElement: globalThis.HTMLElement };
   const runtime = hookRuntime(), workspace = richWorkspace();
-  const workspaceRef = { current: workspace }, savedRef = { current: serializeWorkspace(workspace) };
+  let savedWorkspace = workspace;
+  const workspaceRef = { current: workspace }, savedRef = { current: true };
   const pathRef = { current: '/tmp/original.minimap' }, dirtyRef = { current: !!config.dirty }, openingRef = { current: false };
   const historyRef = { current: [workspace] }, redoRef = { current: [workspace] };
   const calls = [], prompts = [], errors = [], marked = [], selected = [];
@@ -22,8 +23,8 @@ async function setup(t, config = {}) {
     'import { useRecovery } from "./useRecovery.ts";': 'const useRecovery = () => ({ flush: () => window.__TAURI__.core.invoke("clear_recovery") });',
   });
   const options = { workspace, workspaceRef, savedRef, pathRef, dirtyRef, openingRef, historyRef, redoRef,
-    markTabsSaved: value => marked.push(value), onOpened: key => selected.push(key),
-    updateDirty() { dirtyRef.current = serializeWorkspace(workspaceRef.current) !== savedRef.current; },
+    markTabsSaved: value => { savedWorkspace = value; marked.push(value); }, onOpened: key => selected.push(key),
+    updateDirty() { dirtyRef.current = !savedRef.current || !sameSnapshot(workspaceRef.current, savedWorkspace); },
     setWorkspace() {}, setStatus() {}, setError: error => { if (error) errors.push(error); },
     confirm: async prompt => { prompts.push(prompt); return config.confirm ? config.confirm(prompt) : true; },
   };
@@ -32,7 +33,7 @@ async function setup(t, config = {}) {
   function unchanged() {
     assert.equal(workspaceRef.current, workspace);
     assert.equal(pathRef.current, '/tmp/original.minimap');
-    assert.equal(savedRef.current, serializeWorkspace(workspace));
+    assert.equal(savedRef.current, true);
     assert.deepEqual(historyRef.current, [workspace]);
     assert.deepEqual(redoRef.current, [workspace]);
     assert.deepEqual(marked, []);
@@ -54,7 +55,7 @@ test('new workspace replaces all tabs, clears file/history/recovery and establis
   assert.deepEqual(next.tabs[0].tree.children, []);
   assert.notEqual(next.tabs[0].tree.key, h.workspace.tabs[0].tree.key);
   assert.equal(h.pathRef.current, '');
-  assert.equal(h.savedRef.current, serializeWorkspace(next));
+  assert.equal(h.savedRef.current, true);
   assert.equal(h.dirtyRef.current, false);
   assert.equal(h.hook.pausedRef.current, false);
   assert.deepEqual(h.historyRef.current, []);
