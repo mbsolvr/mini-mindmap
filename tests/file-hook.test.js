@@ -12,6 +12,7 @@ async function loadHook(tag) {
     .replace('import { useRecovery } from "./useRecovery.ts";', 'const useRecovery = () => ({ flush: async () => {} });')
     .replaceAll('"../autosave.ts"', `"${new URL("../src/autosave.ts", import.meta.url).href}"`)
     .replaceAll('"../model.ts"', `"${new URL("../src/model.ts", import.meta.url).href}"`)
+    .replaceAll('"../xmind.ts"', `"${new URL("../src/xmind.ts", import.meta.url).href}"`)
     .replaceAll('"../archive.ts"', `"${new URL("../src/archive.ts", import.meta.url).href}"`)
     .replaceAll('"../tauri.ts"', `"${new URL("../src/tauri.ts", import.meta.url).href}"`);
   return (await import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}#${tag}`)).useDocumentFile;

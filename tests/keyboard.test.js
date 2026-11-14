@@ -65,3 +65,26 @@ test("navigation excludes hidden summary topics and their children in every dire
   assert.equal(adjacentNode(map, "b", "ArrowUp", visible), "r");
   assert.equal(adjacentNode(map, "s", "ArrowDown", visible), null);
 });
+
+test("zoom shortcuts accept plus, equals and keypad keys with Ctrl or Command and reject Alt", async () => {
+  const { handleEditorShortcut } = await import('../src/keyboard.ts');
+  const previous = { Element: globalThis.Element, HTMLElement: globalThis.HTMLElement };
+  globalThis.Element = globalThis.HTMLElement = class {};
+  try {
+    for (const modifier of ['ctrlKey', 'metaKey']) {
+      for (const [key, code, shiftKey, step] of [
+        ['+', 'Equal', true, 0.1], ['=', 'Equal', false, 0.1],
+        ['+', 'NumpadAdd', false, 0.1], ['-', 'Minus', false, -0.1], ['-', 'NumpadSubtract', false, -0.1],
+      ]) {
+        let prevented = false, zoom;
+        const event = { key, code, shiftKey, [modifier]: true, preventDefault() { prevented = true; } };
+        assert.equal(handleEditorShortcut(event, { zoom: step => { zoom = step; } }), true);
+        assert.equal(prevented, true);
+        assert.equal(zoom, step);
+      }
+    }
+    for (const event of [{ key: '+' }, { key: '-', ctrlKey: true, altKey: true }, { key: '_', ctrlKey: true }]) {
+      assert.equal(handleEditorShortcut(event, { zoom() { assert.fail('unexpected zoom'); } }), false);
+    }
+  } finally { Object.assign(globalThis, previous); }
+});

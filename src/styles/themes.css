@@ -138,6 +138,9 @@ main[data-theme="midnight"] {
   outline-offset: 2px;
   border-color: var(--map-accent);
 }
+.canvas[data-template] .node-row:not(.depth-0):not(.depth-1) > .node.selected {
+  border-radius: 6px;
+}
 .canvas[data-template] .collapse {
   background: var(--map-bg);
   color: var(--map-text);

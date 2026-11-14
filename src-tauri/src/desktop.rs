@@ -3,6 +3,11 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 pub(crate) fn export_bytes(format: &str, data: String) -> Result<(&'static str, Vec<u8>), String> {
+    if format == "xmind" {
+        return crate::storage::decode_archive(&data)
+            .map(|bytes| ("xmind", bytes))
+            .map_err(|error| error.replace("minimap", "XMind"));
+    }
     if data.len() > 90 * 1024 * 1024 {
         return Err("Export exceeds the size limit".into());
     }
@@ -51,10 +56,10 @@ pub(crate) async fn export_file(
     tauri::async_runtime::spawn_blocking(move || {
         let Some(path) = rfd::FileDialog::new()
             .add_filter(
-                if extension == "md" {
-                    "Markdown"
-                } else {
-                    "Images"
+                match extension {
+                    "md" => "Markdown",
+                    "xmind" => "XMind",
+                    _ => "Images",
                 },
                 &[extension],
             )
@@ -124,6 +129,13 @@ mod tests {
         assert!(export_bytes("png", STANDARD.encode(b"not a png")).is_err());
         assert!(export_bytes("md", "# 中文\n".into()).is_ok());
         assert!(export_bytes("json", "{}".into()).is_err());
+        let archive = include_bytes!("../../tests/fixtures/reference.minimap");
+        assert_eq!(
+            export_bytes("xmind", STANDARD.encode(archive)).unwrap(),
+            ("xmind", archive.to_vec())
+        );
+        assert!(export_bytes("xmind", STANDARD.encode(b"not a zip")).is_err());
+        assert!(export_bytes("xmind", "invalid base64".into()).is_err());
     }
 
     #[test]

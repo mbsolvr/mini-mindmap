@@ -86,6 +86,18 @@ test("selected layouts retain their icons", async () => {
   assert.match(layout, /Mind map<\/span><\/span><span class="menu-check"[^>]*>✓/);
 });
 
+test("workspace creation and XMind exchange have distinct decorative menu icons", async () => {
+  const { MenuLabel } = await loadComponentModule("AppMenu");
+  const paths = ["New workspace", "Import XMind…", "Export XMind…"].map(label => {
+    const html = renderToStaticMarkup(React.createElement(MenuLabel, { label }));
+    assert.match(html, /class="menu-icon"[^>]*aria-hidden="true"/);
+    assert.ok(html.includes(label));
+    return /<path d="([^"]+)"/.exec(html)?.[1];
+  });
+  assert.ok(paths.every(Boolean));
+  assert.equal(new Set(paths).size, 3);
+});
+
 test("topic font menu offers compact sizes and preserves an existing custom size", async () => {
   const Menu = await loadComponent("NodeContextMenu");
   const html = renderToStaticMarkup(React.createElement(Menu, { x: 0, y: 0, node: { textStyle: { size: 21 } }, onStyle() {}, onRemove() {} }));

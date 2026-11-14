@@ -5,11 +5,13 @@ interface SaveResult {
 }
 interface TauriResults {
   open_copy: { name: string; contents: string } | null;
+  import_xmind: { name: string; contents: string } | null;
   open_launched:
     | { Ok: { name: string; contents: string } }
     | { Err: string }
     | null;
   accept_open: string;
+  clear_target: void;
   save_as: SaveResult | null;
   save_current: SaveResult;
   read_recovery: string | null;

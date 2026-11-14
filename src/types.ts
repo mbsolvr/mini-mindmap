@@ -34,6 +34,8 @@ export interface MindNode {
   key: string;
   text: string;
   tabTitle?: string;
+  notes?: string;
+  labels?: string[];
   children: MindNode[];
   collapsed?: boolean;
   side?: "left" | "right";

@@ -169,7 +169,7 @@ export default function TabBar({
                       if (
                         (event.ctrlKey || event.metaKey) &&
                         !event.altKey &&
-                        event.key.toLowerCase() === "s"
+                        ["s", "+", "=", "-"].includes(event.key.toLowerCase())
                       )
                         return;
                       if (event.key === "Enter") event.currentTarget.blur();

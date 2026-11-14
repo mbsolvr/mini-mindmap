@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useT } from "../i18n.ts";
 
 const icons: Record<string, string> = {
+  "New workspace": "M3 4h18v16H3z M3 9h18 M8 14h8 M12 10v8",
   "Open…": "M3 6h7l2 2h9l-2 10H3z",
   File: "M5 3h9l5 5v13H5z M14 3v5h5",
   Edit: "M4 20l4-1L20 7l-3-3L5 16z",
@@ -10,6 +11,8 @@ const icons: Record<string, string> = {
   Save: "M4 3h14l2 2v16H4z M7 3v6h9V3 M7 21v-8h10v8",
   "Save As…": "M4 3h14l2 2v16H4z M7 3v6h9V3 M8 17h8 M12 13v8",
   Export: "M12 3v12 M8 11l4 4 4-4 M4 17v4h16v-4",
+  "Import XMind…": "M5 3h9l5 5v13H5z M14 3v5h5 M12 10v8 M9 15l3 3 3-3",
+  "Export XMind…": "M5 3h9l5 5v13H5z M14 3v5h5 M12 18v-8 M9 13l3-3 3 3",
   Undo: "M9 7 4 12l5 5 M4 12h10a5 5 0 0 1 5 5",
   Redo: "M15 7l5 5-5 5 M20 12H10a5 5 0 0 0-5 5",
   Rename: "M4 20l4-1L20 7l-3-3L5 16z M14 7l3 3",

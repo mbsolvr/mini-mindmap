@@ -4,8 +4,11 @@ import { layouts } from "../layouts.ts";
 
 type Props = Omit<React.ComponentProps<typeof AppMenu>, "sections"> & {
   layout: string;
+  onNew: () => void | Promise<void>;
   onOpen: () => void | Promise<void>;
   onSave: (as: boolean) => void | Promise<void>;
+  importXmind: () => void | Promise<void>;
+  exportXmind: () => void | Promise<void>;
   exportMarkdown: () => void | Promise<void>;
   exportImage: (format: "svg" | "png") => void | Promise<void>;
   exportPdf: () => void | Promise<void>;
@@ -31,8 +34,11 @@ export default function WorkspaceMenu({
   setMenu,
   busy,
   layout,
+  onNew,
   onOpen,
   onSave,
+  importXmind,
+  exportXmind,
   exportMarkdown,
   exportImage,
   exportPdf,
@@ -59,12 +65,15 @@ export default function WorkspaceMenu({
       setMenu={setMenu}
       busy={busy}
       sections={[
+        ["New workspace", onNew],
         ["Open…", onOpen],
         [
           "File",
           [
             ["Save", () => onSave(false)],
             ["Save As…", () => onSave(true)],
+            ["Import XMind…", importXmind],
+            ["Export XMind…", exportXmind],
             [
               "Export",
               null,
@@ -92,8 +101,8 @@ export default function WorkspaceMenu({
         [
           "View",
           [
-            ["Zoom In", () => onZoom(0.1)],
-            ["Zoom Out", () => onZoom(-0.1)],
+            ["Zoom In", () => onZoom(0.1), "Ctrl++"],
+            ["Zoom Out", () => onZoom(-0.1), "Ctrl+-"],
             ["Fit Canvas", onFit],
             ["Reset Zoom", onResetZoom],
             ["Expand All", () => onCollapseAll(false)],

@@ -4,6 +4,7 @@
 
 - `useWorkspace` validates edits, records undo snapshots, and tracks saved state.
 - `useDocumentFile` owns file operations, automatic saving, and recovery. Rust performs filesystem writes.
+- `xmind.ts` converts XMind sheets to/from the existing map model; `xmindXml.ts` normalizes legacy XML. `zip.ts` validates archive directories for both native and XMind files. See [file formats](file-formats.md) for storage and exchange boundaries.
 - `useTopicActions` owns topic and note edits, hierarchy changes, and image paste. Every edit uses the existing workspace transactions; focus changes only after a successful edit.
 - `useTopicFocus` owns editor focus and keeping the selected topic visible. It preserves each tab's viewport when switching tabs.
 - `keyboard.ts` contains keyboard decisions and common shortcuts. `App` handles modal guards, Escape priority, and selection-specific actions. Saving from an editor commits its blur handler before writing the file.

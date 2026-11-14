@@ -20,6 +20,7 @@ A simple, local-first mind map app for Linux, macOS, and Windows.
 - **Workspaces** — Keep several maps in tabs, each with its own canvas position and zoom.
 - **Your files** — Save maps and workspaces as `.minimap` files, with auto-save and recovery for unsaved changes.
 - **Export** — Share maps as Markdown, SVG, PNG, or PDF.
+- **XMind exchange** — Import modern or XMind 8 workbooks into tabs and export all tabs as a modern `.xmind` workbook from the File menu. See [file formats and exchange limits](docs/file-formats.md).
 - **Personalize** — Choose the Default or cyberpunk-inspired Midnight theme, adjust fonts and interface sizes, and use English, Simplified Chinese, Japanese, or Korean. The interface follows your system language unless you choose one in Settings.
 
 ## Installation
@@ -37,6 +38,8 @@ Click a topic to select it, drag it to rearrange the map, and double-click to ed
 To add a summary, select at least two topics with Ctrl-click (Command-click on macOS) or by dragging a selection box, then choose **Add summary** from the Edit menu or the selected topics' context menu. Summary ranges cannot overlap, and a summary or its children cannot be included in another summary. Edit the summary text directly; use its delete button to remove it, its child topics, and their connections. A summary is hidden while any of its topics is collapsed, and reappears when they are visible again. Moving a grouped topic into its own summary makes it a child and removes it from the bracket; at least one grouped topic must remain outside the summary.
 
 Use **Save** to choose a `.minimap` file. When enabled, auto-save keeps the file up to date. Use the switch in the status bar to turn auto-save on or off. A separate recovery draft can restore unsaved work after an unexpected exit.
+
+Choose **New workspace** in the application menu to close the current workspace and start with one blank map. Unsaved changes require confirmation. The tab bar's **＋** adds a map to the current workspace.
 
 On Windows, double-click a `.minimap` file to open it in Mini Mindmap. If the app is already running, it opens the file in the existing window.
 
@@ -57,6 +60,8 @@ Maps support up to 5,000 objects and 100 levels per tab, and images up to 10 MiB
 | `Ctrl+Shift+Z` / `Ctrl+Y` | Redo |
 | `Ctrl+S` | Save |
 | `Ctrl+Shift+S` | Save as |
+| `Ctrl++` / `Ctrl+=` | Zoom in |
+| `Ctrl+-` | Zoom out |
 | Drag on empty canvas | Select topics |
 | `Space+drag` | Pan the canvas |
 | Mouse wheel / trackpad | Pan the canvas |

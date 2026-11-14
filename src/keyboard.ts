@@ -58,6 +58,7 @@ interface ShortcutCommands {
   undo: () => void;
   redo: () => void;
   openMenu: (name: string) => void;
+  zoom: (step: number) => void;
 }
 
 // Return true for local editor undo too: it must not reach canvas shortcuts.
@@ -67,6 +68,11 @@ export function handleEditorShortcut(
 ): boolean {
   const modifier = event.ctrlKey || event.metaKey;
   const target = event.target;
+  if (modifier && !event.altKey && ["+", "=", "-"].includes(event.key)) {
+    event.preventDefault();
+    commands.zoom(event.key === "-" ? -0.1 : 0.1);
+    return true;
+  }
   if (event.altKey && !modifier && !event.shiftKey) {
     const name = {
       f: "File",

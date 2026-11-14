@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { AUTO_SAVE_KEY, readAutoSave, shouldAutoSave } from "../autosave.ts";
 import {
+  newDocument,
   parseDocument,
   serializeWorkspace,
   workspaceFromDocument,
@@ -10,6 +11,7 @@ import {
 import type { Workspace } from "../types.ts";
 import { invoke } from "../tauri.ts";
 import { createArchive, readArchive } from "../archive.ts";
+import { readXmind } from "../xmind.ts";
 import type { Confirmation } from "../components/ConfirmDialog.tsx";
 import { useRecovery } from "./useRecovery.ts";
 
@@ -243,6 +245,71 @@ export function useDocumentFile({
   async function openCopy() {
     await openFile(false);
   }
+  async function newWorkspace(title = "Central Topic") {
+    if (busyRef.current || composingRef.current) return;
+    working(true);
+    setError("");
+    try {
+      commitEditor();
+      openingRef.current = true;
+      if (dirtyRef.current && !(await confirm({
+        title: "New workspace?",
+        message: "Creating a new workspace closes all current tabs and discards unsaved changes. Continue?",
+        action: "Discard and create",
+      }))) return;
+      const next = workspaceFromDocument(newDocument(title));
+      const contents = serializeWorkspace(next);
+      await invoke("clear_target");
+      pathRef.current = "";
+      setPath("");
+      workspaceRef.current = next;
+      savedRef.current = contents;
+      markTabsSaved(next);
+      historyRef.current = [];
+      redoRef.current = [];
+      pausedRef.current = false;
+      updateDirty();
+      setWorkspace(next);
+      onOpened(next.tabs[0].tree.key);
+      setStatus("Choose a save location after making changes");
+      await recovery.flush().catch(cause =>
+        setError("Could not save recovery data: " + String(cause)),
+      );
+    } catch (cause) {
+      setError("Could not create workspace: " + String(cause));
+    } finally {
+      openingRef.current = false;
+      working(false);
+      setEpoch(value => value + 1);
+    }
+  }
+  async function importXmind() {
+    if (busyRef.current || composingRef.current) return;
+    working(true);
+    setError("");
+    try {
+      commitEditor();
+      openingRef.current = true;
+      const file = await invoke("import_xmind");
+      if (!file) return;
+      const { workspace: imported, limited } = await readXmind(file.contents);
+      const previous = workspaceRef.current;
+      const next = { ...previous, tabs: [...previous.tabs, ...imported.tabs], active: previous.tabs.length + imported.active };
+      recordHistory(previous);
+      workspaceRef.current = next;
+      updateDirty();
+      setWorkspace(next);
+      onOpened(next.tabs[next.active].tree.key);
+      setStatus("XMind imported");
+      if (limited) setError("Some XMind features could not be represented exactly. Check the imported maps.");
+    } catch (cause) {
+      setError(`XMind import failed: ${String(cause)}`);
+    } finally {
+      openingRef.current = false;
+      working(false);
+      setEpoch(value => value + 1);
+    }
+  }
   useEffect(() => {
     const events = window.__TAURI__?.event;
     if (!events) return;
@@ -383,5 +450,7 @@ export function useDocumentFile({
     toggleAutoSave,
     save,
     openCopy,
+    newWorkspace,
+    importXmind,
   };
 }

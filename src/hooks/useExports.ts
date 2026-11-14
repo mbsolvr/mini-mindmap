@@ -5,6 +5,7 @@ import type { MapContent, Workspace } from "../types.ts";
 import { makeSvg, pngBase64 } from "../export.ts";
 import { toMarkdown } from "../markdown.ts";
 import { invoke } from "../tauri.ts";
+import { createXmind } from "../xmind.ts";
 
 interface Options {
   workspaceRef: RefObject<Workspace>;
@@ -116,10 +117,29 @@ export function useExports({
       setEpoch((value) => value + 1);
     }
   }
+  async function exportXmind() {
+    if (busyRef.current || composingRef.current) return;
+    working(true);
+    setError("");
+    try {
+      const editor = document.activeElement;
+      if (editor instanceof HTMLElement) flushSync(() => editor.blur());
+      const { contents, limited } = await createXmind(workspaceRef.current);
+      if (await invoke("export_file", { format: "xmind", data: contents })) {
+        setStatus("XMind exported");
+        if (limited) setError("Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.");
+      }
+    } catch (cause) {
+      setError(`XMind export failed: ${String(cause)}`);
+    } finally {
+      working(false);
+      setEpoch(value => value + 1);
+    }
+  }
   useEffect(() => {
     const clear = () => setPrintDocument(null);
     window.addEventListener("afterprint", clear);
     return () => window.removeEventListener("afterprint", clear);
   }, []);
-  return { printDocument, exportImage, exportMarkdown, exportPdf };
+  return { printDocument, exportImage, exportMarkdown, exportPdf, exportXmind };
 }

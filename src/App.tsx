@@ -206,6 +206,8 @@ export default function App() {
     toggleAutoSave,
     save,
     openCopy,
+    newWorkspace,
+    importXmind,
   } = useDocumentFile({
     workspace,
     setWorkspace,
@@ -373,7 +375,7 @@ export default function App() {
     animationsRef.current.forEach((animation) => animation.finish());
     animationsRef.current = [];
   }
-  const { printDocument, exportImage, exportMarkdown, exportPdf } = useExports({
+  const { printDocument, exportImage, exportMarkdown, exportPdf, exportXmind } = useExports({
     workspaceRef,
     mapRef,
     canvasRef,
@@ -553,6 +555,7 @@ export default function App() {
     }
     if (
       handleEditorShortcut(event, {
+        zoom: adjustZoom,
         save: (as) => {
           void actions.current?.save(as);
         },
@@ -703,8 +706,11 @@ export default function App() {
             setMenu={setMenu}
             busy={busy}
             layout={layout}
+            onNew={() => newWorkspace(t("Central Topic"))}
             onOpen={openCopy}
             onSave={save}
+            importXmind={importXmind}
+            exportXmind={exportXmind}
             exportMarkdown={exportMarkdown}
             exportImage={exportImage}
             exportPdf={exportPdf}
@@ -1022,6 +1028,8 @@ export default function App() {
         )}
         {settingsOpen && (
           <SettingsDialog
+            autoSave={autoSave}
+            onAutoSave={toggleAutoSave}
             language={languagePreference}
             theme={theme}
             display={display}

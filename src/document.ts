@@ -54,6 +54,10 @@ export function parseDocument(text: string): Document {
       throw new Error("Invalid child topic data");
     if (node.textStyle != null && !validStyle(node.textStyle))
       throw new Error("Invalid topic style");
+    if ((node.notes != null && typeof node.notes !== "string") ||
+        (node.labels != null && (!Array.isArray(node.labels) ||
+          node.labels.some((label: unknown) => typeof label !== "string"))))
+      throw new Error("Invalid topic data");
     if (
       [node.tabTitle, node.layout, node.template].some(
         (v) => v != null && typeof v !== "string",

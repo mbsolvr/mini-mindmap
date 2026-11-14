@@ -32,6 +32,7 @@ BRIDGE = """(() => {
         return {path: '/tmp/mini-mindmap-test.minimap', warning: null};
       }
       if (command === 'open_copy') return state.saved && { name: 'test.minimap', contents: state.saved };
+      if (command === 'import_xmind') return state.xmind || null;
       if (command === 'open_launched') return state.launches.shift() || null;
       if (command === 'accept_open') return '/tmp/mini-mindmap-test.minimap';
       if (command === 'export_file') { state.exports.push(args); return true; }
@@ -158,6 +159,11 @@ def run():
             script("document.querySelector('.tab-open').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
             wait_for(lambda: script("return !!document.querySelector('.tab-rename')"), 'tab rename before close')
             keys('.tab-rename', '\ue009a\ue000Uncommitted title')
+            keys('.tab-rename', '\ue009+\ue000')
+            wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1.1', 'Ctrl plus while renaming a tab')
+            keys('.tab-rename', '\ue009-\ue000')
+            wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1', 'Ctrl minus while renaming a tab')
+            assert script("return document.querySelector('.tab-rename').value") == 'Uncommitted title'
             assert not script("return !!document.querySelector('.tab-dirty')")
             script("window.__miniTest.close({preventDefault(){}})")
             wait_for(lambda: script("return !!document.querySelector('#confirm-title')"), 'close warns about pending tab rename')
@@ -210,6 +216,20 @@ def run():
             assert not script("return !!document.querySelector('.root-node img')")
             click('[role=alert] button')
             wait_for(lambda: script("return !!document.querySelector('.tab.active .tab-dirty')"), 'unsaved tab indicator')
+            before_shortcuts = values()
+            keys(editor, '\ue009+\ue000')
+            wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1.1', 'Ctrl plus zooms the map from a topic editor')
+            keys(editor, '\ue009-\ue000')
+            wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1', 'Ctrl minus zooms out')
+            keys(editor, '\ue009=\ue000')
+            wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1.1', 'Ctrl equals also zooms in')
+            assert script("""const el=document.querySelector(arguments[0]);
+              const e=new KeyboardEvent('keydown',{key:'-',code:'NumpadSubtract',ctrlKey:true,bubbles:true,cancelable:true});
+              el.dispatchEvent(e); return e.defaultPrevented;""", editor), 'keypad zoom prevents browser zoom'
+            wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1', 'keypad minus zooms out')
+            assert values() == before_shortcuts, 'zoom shortcuts must not edit topic text'
+            script("window.dispatchEvent(new KeyboardEvent('keydown',{key:'+',ctrlKey:true,altKey:true,bubbles:true,cancelable:true})); window.dispatchEvent(new KeyboardEvent('keydown',{key:'+',ctrlKey:true,isComposing:true,bubbles:true,cancelable:true}))")
+            assert script("return document.querySelector('.map').dataset.zoom") == '1'
             keys(editor, "\ue004")
             wait_for(lambda: len(values()) == 2, "new child")
             assert script("return getComputedStyle(document.querySelector('.children')).animationName") == 'branch-reveal'
@@ -277,6 +297,16 @@ def run():
                 {"type": "pointerMove", "duration": 0, "x": x1, "y": y1}, {"type": "pointerDown", "button": 0},
                 {"type": "pointerMove", "duration": 400, "x": x2, "y": y2}, {"type": "pointerUp", "button": 0}]}]})
             wait_for(lambda: parent_of("Alpha") == "Beta", "dragging a topic into another topic")
+            assert script("""const card=document.querySelector('.node-row.depth-2 > .node.selected'), canvas=document.querySelector('.canvas');
+              const template=canvas.dataset.template, size=[card.offsetWidth,card.offsetHeight];
+              try {
+                for(const theme of ['default','midnight']) {
+                  canvas.dataset.template=theme;
+                  if(getComputedStyle(card).borderRadius!=='6px') return false;
+                }
+                card.classList.remove('selected');
+                return getComputedStyle(card).borderRadius==='0px' && card.offsetWidth===size[0] && card.offsetHeight===size[1];
+              } finally { canvas.dataset.template=template; card.classList.add('selected'); }"""), 'rounded selection in both themes without resizing topics'
             assert script("return window.__nodeMotionCalls") > 0, 'ordinary text moves should still animate'
             wait_for(lambda: script("""const p=document.querySelector('.branch-layer path'), a=[...document.querySelectorAll('.node')].find(el=>el.querySelector('textarea')?.value==='Alpha');
               const m=document.querySelector('.map'), z=Number(m.dataset.zoom), r=a.getBoundingClientRect(), origin=m.getBoundingClientRect(), end=p.getPointAtLength(p.getTotalLength());
@@ -362,7 +392,7 @@ def run():
               const event=new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}); card.dispatchEvent(event); return event.defaultPrevented;""")
             assert values() == before, 'Enter on the summary card must not add a sibling'
             click('[aria-label="Menu"]')
-            click('.app-menu-list .menu:nth-child(3) > button')
+            click('.app-menu-list .menu:nth-child(4) > button')
             assert script("return [...document.querySelectorAll('.dropdown button')].find(el=>el.textContent.includes('Add Sibling Topic')).disabled")
             click('[aria-label="Menu"]')
             point = script("const r=document.querySelector('.summary-node > .node-row > .node').getBoundingClientRect(); return [Math.round(r.x+r.width/2),Math.round(r.y+r.height/2),50,window.innerHeight-80]")
@@ -646,6 +676,7 @@ def run():
             assert abs(wheel_end[0] - wheel_origin[0] + 35) < 1 and abs(wheel_end[1] - wheel_origin[1] + 45) < 1, (wheel_origin, wheel_end)
             assert script("const e=new WheelEvent('wheel',{deltaY:2,ctrlKey:true,bubbles:true,cancelable:true}); document.querySelector('.canvas').dispatchEvent(e); return e.defaultPrevented")
             view_one = script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]")
+            first_tab_values = values()
             click('[aria-label="New tab"]')
             wait_for(lambda: script("return document.querySelectorAll('.tab').length") == 2, "second tab")
             assert script("return document.querySelectorAll('.tab-dirty').length") == 2
@@ -655,6 +686,7 @@ def run():
             assert view_two[0] != view_one[0]
             click('.tab:first-child .tab-open')
             wait_for(lambda: script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]") == view_one, 'restored first tab view')
+            assert values() == first_tab_values
             click('.tab:nth-child(2) .tab-open')
             wait_for(lambda: script("const map = document.querySelector('.map'); return [map.dataset.zoom, map.style.transform]") == view_two, 'restored second tab view')
             original_tabs = script("return [...document.querySelectorAll('.tab .tab-open')].map(el => el.textContent)")
@@ -689,6 +721,28 @@ def run():
             click(".app-menu-list .menu:last-child > button")
             wait_for(lambda: script("return document.querySelector('.settings-dialog')?.open"), 'settings dialog')
             assert script("return document.activeElement === document.querySelector('#settings-title')")
+            assert script("return document.querySelector('.settings-nav [aria-current=page]').dataset.section") == 'General'
+            assert script("return document.querySelector('[role=switch]')?.getAttribute('aria-checked')") == 'true'
+            click('[aria-label="Auto-save workspace"]')
+            assert script("return localStorage.getItem('mini-mindmap-auto-save')") == 'false'
+            assert script("return document.querySelector('.bottom-bar .autosave-switch').getAttribute('aria-checked')") == 'false'
+            click('[aria-label="Auto-save workspace"]')
+            assert script("return document.querySelector('.bottom-bar .autosave-switch').getAttribute('aria-checked')") == 'true'
+            click('.settings-nav [data-section="About"]')
+            app_info = json.loads((ROOT / 'src-tauri/tauri.conf.json').read_text())
+            assert script("return document.querySelector('.settings-about h4').textContent") == app_info['productName']
+            assert script("return document.querySelector('.settings-about p').textContent") == 'Version ' + app_info['version']
+            assert not script("return !!document.querySelector('.settings-choice,input[data-setting]')")
+            (Path(tmp) / 'settings-about.png').write_bytes(base64.b64decode(request(api + '/screenshot')))
+            click('.settings-nav [data-section="Appearance"]')
+            assert script("const a=document.querySelector('.settings-nav').getBoundingClientRect(), b=document.querySelector('.settings-content').getBoundingClientRect(); return a.right<=b.left")
+            assert script("return document.querySelectorAll('input[data-setting]').length") == 4
+            (Path(tmp) / 'settings-appearance.png').write_bytes(base64.b64decode(request(api + '/screenshot')))
+            print(f"Settings previews: {tmp}/settings-about.png {tmp}/settings-appearance.png", flush=True)
+            original_rect = request(api + '/window/rect')
+            request(api + '/window/rect', {'width': 640, 'height': 480})
+            assert script("const d=document.querySelector('.settings-dialog'), r=d.getBoundingClientRect(); return r.left>=0 && r.top>=0 && r.right<=innerWidth && r.bottom<=innerHeight && d.scrollWidth<=d.clientWidth")
+            request(api + '/window/rect', {'width': original_rect['width'], 'height': original_rect['height']})
             click('.settings-choice summary[aria-label="Theme"]')
             keys('.settings-choice summary[aria-label="Theme"]', '\ue00c')
             assert script("return document.querySelector('.settings-dialog').open && !document.querySelector('.settings-choice[open]')")
@@ -706,11 +760,14 @@ def run():
             assert script("return (document.querySelector('.branch-layer path')?.getAttribute('d')?.match(/Q/g)||[]).length") == 2
             assert script("return getComputedStyle(document.querySelector('.branch'), '::before').display") == 'none'
             assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/export.ts').then(({makeSvg})=>{const m=document.querySelector('.map'), svg=new DOMParser().parseFromString(makeSvg(m,document.querySelector('.canvas'),Number(m.dataset.zoom)).svg,'image/svg+xml'); done([svg.querySelector('svg > rect').getAttribute('fill'), svg.querySelector('svg > g').getAttribute('stroke'), [...svg.querySelectorAll('svg > g > path')].filter(p=>p.getAttribute('d').includes('Q')).length, [...svg.querySelectorAll('rect')].some(r=>r.getAttribute('fill')==='rgb(46, 36, 48)' && r.getAttribute('stroke')==='rgb(185, 165, 106)')]);});", "args": []}) == ['rgb(13, 16, 28)', '#55ccd6', 2, True]
+            click('.settings-nav [data-section="General"]')
             click('.settings-choice summary[aria-label="Language"]')
             click('.settings-choice[open] .settings-options button:nth-child(3)')
             wait_for(lambda: script("return document.documentElement.lang") == "zh-CN", "Chinese language")
+            click('.settings-nav [data-section="Appearance"]')
             click('.settings-choice summary[aria-label="主题"]')
             assert script("return [...document.querySelectorAll('.settings-choice[open] .settings-options button')].map(button=>button.firstChild.textContent.trim())") == ['默认', '午夜']
+            click('.settings-nav [data-section="General"]')
             click('.settings-choice summary[aria-label="语言"]')
             click('.settings-choice[open] .settings-options button:nth-child(2)')
             wait_for(lambda: script("return document.documentElement.lang") == "en", "English language")
@@ -721,6 +778,7 @@ def run():
             wait_for(lambda: script("return document.documentElement.lang") == 'zh-CN', 'system language')
             script("Object.defineProperty(navigator, 'language', {configurable:true, value:'en-US'}); window.dispatchEvent(new Event('languagechange'))")
             wait_for(lambda: script("return document.documentElement.lang") == 'en', 'changed system language')
+            click('.settings-nav [data-section="Appearance"]')
             keys('input[data-setting="systemFontSize"]', '\ue011')
             keys('input[data-setting="contentFontSize"]', '\ue011')
             assert script("return [getComputedStyle(document.querySelector('main')).fontSize, getComputedStyle(document.querySelector('.node')).fontSize, getComputedStyle(document.querySelector('.tab-open')).fontSize]") == ['10px', '20px', '9px']
@@ -780,8 +838,8 @@ def run():
             wait_for(lambda: saved_root() == values()[0], "automatic save after undo")
             for index, selector in [(5, '.floating-topic'), (6, '.floating-note')]:
                 click('[aria-label="Menu"]')
-                click('.app-menu-list .menu:nth-child(3) > button')
-                click(f'.app-menu-list .menu:nth-child(3) .dropdown > button:nth-child({index})')
+                click('.app-menu-list .menu:nth-child(4) > button')
+                click(f'.app-menu-list .menu:nth-child(4) .dropdown > button:nth-child({index})')
                 wait_for(lambda: script("return !!document.querySelector(arguments[0])", selector), 'insert floating element from Edit menu')
                 assert script("const c=document.querySelector('.canvas').getBoundingClientRect(), r=document.querySelector(arguments[0]).getBoundingClientRect(); return r.left >= c.left && r.top >= c.top && r.right <= c.right && r.bottom <= c.bottom", selector)
                 keys(f'{selector} textarea', '\ue009z\ue000')
@@ -908,7 +966,7 @@ def run():
                 assert saved_map['floatingNotes'][0]['textStyle'] == {'color': '#c45850', 'bold': True, 'underline': True, 'size': 18}
             for index, format_name in [(1, 'md'), (2, 'svg')]:
                 click('[aria-label="Menu"]')
-                click('.app-menu-list .menu:nth-child(2) > button')
+                click('.app-menu-list .menu:nth-child(3) > button')
                 click('.dropdown details summary')
                 click(f'.export-submenu button:nth-child({index})')
                 wait_for(lambda: script("return window.__miniTest.exports.some(item => item.format === arguments[0])", format_name), f'{format_name} export')
@@ -919,14 +977,14 @@ def run():
                 else:
                     assert 'font-weight="700"' in data and 'text-decoration="underline"' in data
             click('[aria-label="Menu"]')
-            click('.app-menu-list .menu:nth-child(2) > button')
+            click('.app-menu-list .menu:nth-child(3) > button')
             click('.dropdown details summary')
             click('.export-submenu button:nth-child(3)')
             wait_for(lambda: script("return window.__miniTest.exports.some(item => item.format === 'png')"), 'PNG export')
             png = base64.b64decode(script("return window.__miniTest.exports.find(item => item.format === 'png').data"))
             assert png.startswith(b'\x89PNG\r\n\x1a\n')
             click('[aria-label="Menu"]')
-            click('.app-menu-list .menu:first-child > button')
+            click('.app-menu-list .menu:nth-child(2) > button')
             wait_for(lambda: script("return document.querySelectorAll('.tab').length") == 2, 'reopened floating map')
             assert script("return document.querySelector('.floating-topic > .node-row > .node textarea').value") == 'Free Topic'
             assert sorted(script("return [...document.querySelectorAll('.floating-topic textarea')].map(el => el.value)")) == ['Free Child', 'Free Topic']
@@ -947,7 +1005,7 @@ def run():
             script("const el = document.querySelector('.node.selected textarea'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, arguments[0]); el.dispatchEvent(new Event('input', {bubbles:true}));", long_text)
             wait_for(lambda: any('FINAL-PAGE-MARKER' in value for value in values()), 'long topic')
             click('[aria-label="Menu"]')
-            click('.app-menu-list .menu:nth-child(2) > button')
+            click('.app-menu-list .menu:nth-child(3) > button')
             click('.dropdown details summary')
             click('.export-submenu button:last-child')
             wait_for(lambda: script("return !!window.__miniTest.printed"), 'PDF print request')
@@ -1044,7 +1102,7 @@ def run():
             wait_for(lambda: script("return document.querySelector('.node-row.depth-2').style.getPropertyValue('--connector-offset')") != original_offset, 'multiline connector realignment')
             svg_count = script("return window.__miniTest.exports.filter(item => item.format === 'svg').length")
             click('[aria-label="Menu"]')
-            click('.app-menu-list .menu:nth-child(2) > button')
+            click('.app-menu-list .menu:nth-child(3) > button')
             click('.dropdown details summary')
             click('.export-submenu button:nth-child(2)')
             wait_for(lambda: script("return window.__miniTest.exports.filter(item => item.format === 'svg').length") > svg_count, 'updated SVG export')
@@ -1071,15 +1129,16 @@ def run():
                 assert script("return document.querySelector('#settings-title').textContent") == title
                 assert script("return localStorage.getItem('mini-mindmap-language')") == language
                 assert font_name in script("return getComputedStyle(document.documentElement).fontFamily")
+                click('.settings-nav [data-section="Appearance"]')
                 for index, theme in [(1, 'default'), (2, 'midnight')]:
-                    click('.settings-row:nth-of-type(3) .settings-choice summary')
+                    click('.settings-choice summary')
                     click(f'.settings-choice[open] .settings-options button:nth-child({index})')
                     wait_for(lambda: script("return document.querySelector('main').dataset.theme") == theme, f'{language} {theme} theme')
                     assert script("return [...document.querySelectorAll('.settings-dialog button,.settings-dialog summary')].every(el=>el.scrollWidth<=el.clientWidth+1)"), f'{language} settings overflow'
                 click('.settings-actions button:last-child')
                 click('.app-menu-btn')
                 assert file_label in script("return document.querySelector('.app-menu-list').textContent")
-                click('.app-menu-list .menu:nth-child(3) > button')
+                click('.app-menu-list .menu:nth-child(4) > button')
                 assert script("return [...document.querySelectorAll('.dropdown button')].every(el=>el.scrollWidth<=el.clientWidth+1)"), f'{language} edit menu overflow'
                 script("document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}))")
                 assert values() == contents, 'changing UI language translated document content'
@@ -1136,12 +1195,12 @@ def run():
                 script("[...document.querySelectorAll('.context-actions button')].find(el=>el.textContent.includes('Add summary')).click()")
                 assert script("return document.querySelectorAll('.summary-group').length") == 2, choice
                 click('[aria-label="Menu"]')
-                click('.app-menu-list .menu:nth-child(3) > button')
+                click('.app-menu-list .menu:nth-child(4) > button')
                 assert script("const b=[...document.querySelectorAll('.dropdown button')].find(el=>el.textContent.includes('Add summary')); return !!b && b.disabled && getComputedStyle(b).opacity==='0.45'"), choice
                 click('[aria-label="Menu"]')
             select_topics(['d', 'e'])
             click('[aria-label="Menu"]')
-            click('.app-menu-list .menu:nth-child(3) > button')
+            click('.app-menu-list .menu:nth-child(4) > button')
             assert script("const b=[...document.querySelectorAll('.dropdown button')].find(el=>el.textContent.includes('Add summary')); return !!b && !b.disabled")
             click('[aria-label="Menu"]')
             create_summary(['d', 'e'])
@@ -1240,6 +1299,7 @@ def run():
             geometry = script("return [...document.querySelectorAll('.node')].map(n=>{const s=getComputedStyle(n); return [s.padding,s.borderTopWidth,s.borderBottomWidth,s.borderRadius,s.fontSize,s.fontWeight,n.offsetWidth,n.offsetHeight]})")
             click('[aria-label="Menu"]')
             click('.app-menu-list .menu:last-child > button')
+            click('.settings-nav [data-section="Appearance"]')
             click('.settings-choice summary[aria-label="Theme"]')
             click('.settings-choice[open] .settings-options button:nth-child(2)')
             wait_for(lambda: script("return document.querySelector('main').dataset.theme") == 'midnight', 'night theme for all topic types')
@@ -1333,8 +1393,83 @@ def run():
             click('.close-tab-actions .confirm-action')
             wait_for(lambda: script("return document.querySelector('.root-node textarea')?.value") == 'Second tab', 'file opened in running app')
             assert script("return document.querySelector('[role=alert]')?.textContent.includes('simulated unreadable file')")
+            click('[role=alert] button')
+            xmind_tab_count = script("return document.querySelectorAll('.tab').length")
+            xmind_original_title = script("return window.__miniTest.title")
+            click('[aria-label="Menu"]')
+            click('.app-menu-list .menu:nth-child(3) > button')
+            script("[...document.querySelectorAll('.dropdown > button')].find(b=>b.textContent.trim()==='Export XMind…').click()")
+            wait_for(lambda: script("return window.__miniTest.exports.some(item=>item.format==='xmind')"), 'XMind export from File menu')
+            xmind_data = script("return window.__miniTest.exports.find(item=>item.format==='xmind').data")
+            with zipfile.ZipFile(BytesIO(base64.b64decode(xmind_data))) as archive:
+                xmind_sheets = json.loads(archive.read('content.json'))
+                assert len(xmind_sheets) == xmind_tab_count
+                assert 'metadata.json' in archive.namelist() and 'manifest.json' in archive.namelist()
+                assert xmind_sheets[1]['rootTopic']['title'] == 'Second tab'
+            script("window.__miniTest.xmind={name:'roundtrip.xmind',contents:arguments[0]}", xmind_data)
+            click('[aria-label="Menu"]')
+            click('.app-menu-list .menu:nth-child(3) > button')
+            script("[...document.querySelectorAll('.dropdown > button')].find(b=>b.textContent.trim()==='Import XMind…').click()")
+            wait_for(lambda: script("return document.querySelectorAll('.tab').length") == xmind_tab_count * 2, 'XMind sheets appended')
+            assert script("return window.__miniTest.title") == xmind_original_title
+            assert script("return document.querySelector('.root-node textarea').value") == 'Second tab'
+            script("window.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true}))")
+            wait_for(lambda: script("return document.querySelectorAll('.tab').length") == xmind_tab_count, 'undo XMind import')
+
+            legacy_xml = '''<?xml version="1.0" encoding="UTF-8"?>
+<xmap-content xmlns="urn:xmind:xmap:xmlns:content:2.0" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0">
+<sheet id="legacy"><title>Legacy sheet</title><topic id="xml-root" structure-class="org.xmind.ui.logic.right"><title>旧版 XML 🌱</title>
+<children><topics type="attached"><topic id="xml-a" style-id="style-a" xlink:href="https://example.com"><title>Alpha</title><notes><plain>备注内容</plain></notes><labels><label>标签</label></labels><xhtml:img xhtml:src="xap:attachments/pixel.png"/></topic><topic id="xml-b"><title>Beta</title></topic></topics>
+<topics type="summary"><topic id="xml-summary"><title>XML summary</title></topic></topics>
+<topics type="detached"><topic id="xml-f"><title>Independent XML</title><position svg:x="300" svg:y="100"/></topic></topics></children>
+<summaries><summary id="xml-s" topic-id="xml-summary" range="(0,1)"/></summaries></topic>
+<relationships><relationship id="xml-rel" end1="xml-a" end2="xml-b"><title>XML link</title></relationship></relationships></sheet></xmap-content>'''
+            legacy_buffer = BytesIO()
+            with zipfile.ZipFile(legacy_buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr('content.xml', legacy_xml)
+                archive.writestr('styles.xml', '<xmap-styles xmlns="urn:xmind:xmap:xmlns:style:2.0" xmlns:fo="http://www.w3.org/1999/XSL/Format"><styles><style id="style-a"><topic-properties fo:font-weight="bold" fo:font-size="18pt"/></style></styles></xmap-styles>')
+                archive.writestr('attachments/pixel.png', base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg=='))
+            legacy_data = base64.b64encode(legacy_buffer.getvalue()).decode()
+            script("window.__miniTest.xmind={name:'legacy.xmind',contents:arguments[0]}", legacy_data)
+            click('[aria-label="Menu"]')
+            click('.app-menu-list .menu:nth-child(3) > button')
+            script("[...document.querySelectorAll('.dropdown > button')].find(b=>b.textContent.trim()==='Import XMind…').click()")
+            wait_for(lambda: script("return document.querySelector('.root-node textarea')?.value") == '旧版 XML 🌱', 'XMind 8 XML import')
+            assert script("return document.querySelectorAll('.summary-group').length") == 1
+            assert script("return document.querySelector('.floating-topic textarea').value") == 'Independent XML'
+            assert script("return document.querySelector('.relation-label').textContent") == 'XML link'
+            assert script("return getComputedStyle(document.querySelector('[data-drop-key=xml-a] textarea')).fontWeight") == '700'
+            wait_for(lambda: script("return document.querySelector('[data-drop-key=xml-a] img')?.naturalWidth") == 1, 'legacy image resource')
+            wait_for(lambda: script("const d=JSON.parse(sessionStorage.getItem('recovery')||'null'); return d?.tabs?.at(-1)?.tree.children[0].notes==='备注内容'"), 'legacy notes retained in native recovery')
+            assert script("return JSON.parse(sessionStorage.getItem('recovery')).tabs.at(-1).tree.children[0].labels[0]") == '标签'
+            assert script("return window.__miniTest.title") == xmind_original_title
+            assert request(api + '/execute/async', {"script": "const done=arguments[arguments.length-1]; import('/src/xmindXml.ts').then(({readXmindXml})=>{for(const xml of ['<!DOCTYPE xmap-content [<!ENTITY x SYSTEM \"file:///etc/passwd\">]><xmap-content/>','<xmap-content><broken>']) {try {readXmindXml(xml); done(false); return;} catch {}} done(true);});", "args": []}), 'unsafe and malformed XML rejected'
+            before_new = values()
+            before_new_tabs = script("return document.querySelectorAll('.tab').length")
+            click('[aria-label="Menu"]')
+            assert script("return document.querySelector('.app-menu-list .menu:first-child > button').textContent.trim()") == 'New workspace'
+            click('.app-menu-list .menu:first-child > button')
+            wait_for(lambda: script("return document.querySelector('#confirm-title')?.textContent") == 'New workspace?', 'confirm workspace discard')
+            click('.close-tab-actions button:first-child')
+            assert values() == before_new
+            assert script("return document.querySelectorAll('.tab').length") == before_new_tabs
+            assert script("return window.__miniTest.title") == xmind_original_title
+            click('[aria-label="Menu"]')
+            click('.app-menu-list .menu:first-child > button')
+            click('.close-tab-actions .confirm-action')
+            wait_for(lambda: script("return document.querySelectorAll('.tab').length") == 1, 'new workspace replaces all tabs')
+            assert values() == ['Central Topic']
+            assert not script("return !!document.querySelector('.tab-dirty,.floating-topic,.summary-group,.relation-hit')")
+            wait_for(lambda: script("return window.__miniTest.title") == 'Mini Mindmap', 'new workspace clears save destination')
+            wait_for(lambda: script("return sessionStorage.getItem('recovery')") is None, 'discarded workspace draft cleared')
+            script("window.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true}))")
+            assert values() == ['Central Topic']
+            assert script("return document.querySelectorAll('.tab').length") == 1
+            request(api + '/refresh', {})
+            wait_for(lambda: values() == ['Central Topic'], 'new workspace stays blank after restart')
+            assert not script("return !!document.querySelector('#confirm-title')")
             assert script("return window.__miniTest.errors") == [], 'uncaught browser error or promise rejection'
-            print("PASS: editing, Unicode text, dragging, undo/redo, zoom, tabs, themes, language, saving and file launches")
+            print("PASS: editing, Unicode text, dragging, undo/redo, zoom, tabs, themes, language, saving, file launches and XMind JSON/XML exchange")
         except Exception:
             traceback.print_exc()
             log.flush()

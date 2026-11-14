@@ -51,6 +51,32 @@ pub(crate) async fn open_copy(app: tauri::AppHandle) -> Result<Option<OpenedFile
 }
 
 #[tauri::command]
+pub(crate) async fn import_xmind() -> Result<Option<OpenedFile>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(path) = rfd::FileDialog::new()
+            .add_filter("XMind", &["xmind"])
+            .pick_file()
+        else {
+            return Ok(None);
+        };
+        let contents = read_archive(&path)?;
+        if !contents.starts_with(b"PK\x03\x04") {
+            return Err("Invalid or unsupported XMind file".into());
+        }
+        Ok(Some(OpenedFile {
+            name: path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+            contents: STANDARD.encode(contents),
+        }))
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 pub(crate) async fn open_launched(
     app: tauri::AppHandle,
 ) -> Result<Option<Result<OpenedFile, String>>, String> {
@@ -81,6 +107,12 @@ pub(crate) fn accept_open(store: tauri::State<'_, Store>) -> Result<String, Stri
     state.saved = contents;
     state.path = Some(path.clone());
     Ok(path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub(crate) fn clear_target(store: tauri::State<'_, Store>) -> Result<(), String> {
+    *store.0.lock().map_err(|_| "File state is unavailable")? = FileState::default();
+    Ok(())
 }
 
 #[tauri::command]
