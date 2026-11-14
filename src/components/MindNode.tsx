@@ -189,6 +189,7 @@ export function MindNode({
         onPointerMove={handlers.dragMove}
         onPointerUp={handlers.dragEnd}
         onPointerCancel={handlers.dragCancel}
+        onLostPointerCapture={handlers.dragCancel}
       >
         {safeImage && (
           <img
@@ -200,7 +201,8 @@ export function MindNode({
             draggable={false}
             onLoad={(event) => {
               const style = getComputedStyle(event.currentTarget),
-                width = parseFloat(style.width), height = parseFloat(style.height);
+                width = parseFloat(style.width),
+                height = parseFloat(style.height);
               if (node.image && width && height)
                 imageSizes.set(node.image, {
                   width,

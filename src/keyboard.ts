@@ -2,20 +2,36 @@ import type { MindNode } from "./types.ts";
 import type React from "react";
 import { findNode, findParent } from "./model.ts";
 
-export function isPlainEnter(
-  event: React.KeyboardEvent<HTMLTextAreaElement>,
-) {
+export function isComposingKey(event: {
+  isComposing?: boolean;
+  keyCode?: number;
+  nativeEvent?: KeyboardEvent;
+}): boolean {
+  return !!(
+    event.isComposing ||
+    event.keyCode === 229 ||
+    event.nativeEvent?.isComposing ||
+    event.nativeEvent?.keyCode === 229
+  );
+}
+
+export function isPlainEnter(event: React.KeyboardEvent<HTMLTextAreaElement>) {
   return (
     event.key === "Enter" &&
     !event.shiftKey &&
     !event.ctrlKey &&
     !event.altKey &&
     !event.metaKey &&
-    !event.nativeEvent?.isComposing
+    !isComposingKey(event)
   );
 }
 
-export function adjacentNode(tree: MindNode, key: string, direction: string, visibleKeys?: ReadonlySet<string>) {
+export function adjacentNode(
+  tree: MindNode,
+  key: string,
+  direction: string,
+  visibleKeys?: ReadonlySet<string>,
+) {
   const node = findNode(tree, key);
   if (!node || (visibleKeys && !visibleKeys.has(key))) return null;
   if (direction === "ArrowLeft") {
@@ -23,7 +39,11 @@ export function adjacentNode(tree: MindNode, key: string, direction: string, vis
     return parent && (!visibleKeys || visibleKeys.has(parent)) ? parent : null;
   }
   if (direction === "ArrowRight")
-    return node.collapsed ? null : node.children.find((child) => !visibleKeys || visibleKeys.has(child.key))?.key || null;
+    return node.collapsed
+      ? null
+      : node.children.find(
+          (child) => !visibleKeys || visibleKeys.has(child.key),
+        )?.key || null;
   if (direction !== "ArrowUp" && direction !== "ArrowDown") return null;
   const visible: string[] = [];
   function visit(current: MindNode) {

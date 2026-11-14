@@ -1,5 +1,7 @@
 # Mini Mindmap
 
+**English** | [简体中文](README.zh-CN.md)
+
 <img src="src-tauri/icons/tree-icon-128.png" alt="Mini Mindmap icon" width="96" height="96">
 
 A simple, local-first mind map app for Linux, macOS, and Windows.
@@ -49,7 +51,7 @@ Choose **New workspace** in the application menu to close the current workspace 
 
 On Windows, double-click a `.minimap` file to open it in Mini Mindmap. If the app is already running, it opens the file in the existing window.
 
-Workspaces support up to 100 tabs. Each map supports up to 5,000 objects, 100 levels and 10 connections, and images up to 10 MiB each. A `.minimap` archive is limited to 256 MiB and 10,000 entries; its expanded document is limited to 268,435,456 UTF-16 code units. JSON parsing is limited to 100,000 objects/arrays and 512 nested containers; XMind XML uses a 100,000 markup delimiter budget, shared with its styles. Oversized files are rejected without truncating data. These limits apply when saving and opening files.
+New tabs and imports are limited to 100 tabs per workspace. Larger existing `.minimap` workspaces can still be opened, edited and saved (up to 9,999 tabs within the file budgets), but cannot grow while above 100 tabs. Each map supports up to 5,000 objects, 100 levels and 5,000 connections, and images up to 10 MiB each. A `.minimap` archive is limited to 256 MiB and 10,000 entries; its expanded document is limited to 268,435,456 UTF-16 code units. JSON parsing is limited to 100,000 objects/arrays and 512 nested containers; XMind XML uses a 100,000 markup delimiter budget, shared with its styles. Oversized files are rejected without truncating data. The editor and imports check the same whole-workspace structure budget before committing changes; an over-budget operation leaves the current workspace and history intact. Recovery uses the same document limits.
 
 ## Keyboard shortcuts
 

@@ -1,16 +1,18 @@
 export default {
-  "General": "常规",
-  "Appearance": "外观",
-  "About": "关于",
+  General: "常规",
+  Appearance: "外观",
+  About: "关于",
   "Settings categories": "设置分类",
-  "Fonts": "字体",
-  "Version": "版本",
+  Fonts: "字体",
+  Version: "版本",
   "Reset sizes": "重置尺寸",
   "Auto-save workspace": "自动保存工作区",
-  "Choose a save location first to enable automatic saving.": "请先选择保存位置，之后才能自动保存。",
+  "Choose a save location first to enable automatic saving.":
+    "请先选择保存位置，之后才能自动保存。",
   "New workspace": "新建工作区",
   "New workspace?": "新建工作区？",
-  "Creating a new workspace closes all current tabs and discards unsaved changes. Continue?": "新建工作区将关闭当前所有页签，并丢弃未保存的更改。是否继续？",
+  "Creating a new workspace closes all current tabs and discards unsaved changes. Continue?":
+    "新建工作区将关闭当前所有页签，并丢弃未保存的更改。是否继续？",
   "Discard and create": "丢弃并新建",
   "Could not create workspace: ": "新建工作区失败：",
   "Import XMind…": "导入 XMind…",
@@ -20,16 +22,22 @@ export default {
   "Invalid or unsupported XMind file": "文件损坏或不是受支持的 XMind 文件",
   "XMind import failed: ": "XMind 导入失败：",
   "XMind export failed: ": "XMind 导出失败：",
-  "Some XMind features could not be represented exactly. Check the imported maps.": "部分 XMind 内容无法完全对应，请检查导入的导图。",
-  "Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.": "部分概要或关联线曲线使用 Mini Mindmap 扩展，在 XMind 中的显示可能不同。",
-  "This change would create conflicting summaries": "此更改会导致概要之间发生冲突",
-  "This move would create conflicting summaries": "此移动会导致概要之间发生冲突",
-  "Keep at least one topic outside its summary": "概要外至少需要保留一个被概括的主题",
+  "Some XMind features could not be represented exactly. Check the imported maps.":
+    "部分 XMind 内容无法完全对应，请检查导入的导图。",
+  "Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.":
+    "部分概要或关联线曲线使用 Mini Mindmap 扩展，在 XMind 中的显示可能不同。",
+  "This change would create conflicting summaries":
+    "此更改会导致概要之间发生冲突",
+  "This move would create conflicting summaries":
+    "此移动会导致概要之间发生冲突",
+  "Keep at least one topic outside its summary":
+    "概要外至少需要保留一个被概括的主题",
   Summary: "概要",
   Summaries: "概要",
   "Add summary": "添加概要",
   "Delete summary": "删除概要",
-  "Delete summary, its child topics, and their connections": "删除概要及其子主题和关联线",
+  "Delete summary, its child topics, and their connections":
+    "删除概要及其子主题和关联线",
   "Invalid summary data": "概要数据无效",
   "Select at least two topics to add a summary": "请至少选择两个主题以添加概要",
   "Map file exceeds 256 MB": "导图文件超过 256 MB",
@@ -49,10 +57,15 @@ export default {
     "图片超过 10 MB，请使用较小的图片",
   "Invalid topic style": "主题样式无效",
   "Invalid topic data": "主题数据无效",
-  "A workspace can contain at most 100 tabs": "单个工作空间最多包含 100 个标签页",
-  "A map can contain at most 10 connections": "单张导图最多包含 10 条关联线",
+  "A workspace can contain at most 100 tabs":
+    "单个工作空间最多包含 100 个标签页",
+  "A map can contain at most 5000 connections":
+    "单张导图最多包含 5000 条关联线",
+  "A workspace file can contain at most 9999 tabs":
+    "工作空间文件最多包含 9999 个标签页",
   "Document exceeds the 100000 structure limit": "文档超过 100000 个结构的限制",
-  "Document exceeds the 100000 structure or 512 nesting limit": "文档超过 100000 个结构或 512 层嵌套的限制",
+  "Document exceeds the 100000 structure or 512 nesting limit":
+    "文档超过 100000 个结构或 512 层嵌套的限制",
   "Invalid connection data": "关联线数据无效",
   "Recover unsaved work?": "恢复未保存的内容？",
   "Recovery draft is invalid": "恢复草稿无效",

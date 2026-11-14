@@ -5,10 +5,10 @@ import {
   MAX_IMAGE_BYTES,
   validateMapLimits,
   validRelationControls,
-  validateTabCount,
+  validateFileTabCount,
   validateRelationCount,
 } from "./limits.ts";
-import { checkParseBudget } from "./parseBudget.ts";
+import { checkParseBudget, checkWorkspaceBudget } from "./parseBudget.ts";
 
 export function parseDocument(text: string): Document {
   checkParseBudget(text);
@@ -58,9 +58,12 @@ export function parseDocument(text: string): Document {
       throw new Error("Invalid child topic data");
     if (node.textStyle != null && !validStyle(node.textStyle))
       throw new Error("Invalid topic style");
-    if ((node.notes != null && typeof node.notes !== "string") ||
-        (node.labels != null && (!Array.isArray(node.labels) ||
-          node.labels.some((label: unknown) => typeof label !== "string"))))
+    if (
+      (node.notes != null && typeof node.notes !== "string") ||
+      (node.labels != null &&
+        (!Array.isArray(node.labels) ||
+          node.labels.some((label: unknown) => typeof label !== "string")))
+    )
       throw new Error("Invalid topic data");
     if (
       [node.tabTitle, node.layout, node.template].some(
@@ -264,19 +267,23 @@ export function parseDocument(text: string): Document {
       data.active >= data.tabs.length
     )
       throw new Error("Invalid workspace data");
-    validateTabCount(data.tabs.length);
+    validateFileTabCount(data.tabs.length);
+    const tabs = data.tabs.map((tab: unknown) => {
+      if (!tab || typeof tab !== "object" || !("tree" in tab))
+        throw new Error("Invalid workspace tab data");
+      return content(tab as Record<string, unknown>);
+    });
+    checkWorkspaceBudget(tabs);
     return {
       format: "mini-mindmap",
       version: 2,
       type: "workspace",
       active: data.active,
-      tabs: data.tabs.map((tab: unknown) => {
-        if (!tab || typeof tab !== "object" || !("tree" in tab))
-          throw new Error("Invalid workspace tab data");
-        return content(tab as Record<string, unknown>);
-      }),
+      tabs,
     };
   }
   if (!data.tree) throw new Error("Invalid map file format or version");
-  return { format: "mini-mindmap", version: 2, type: "map", ...content(data) };
+  const map = content(data);
+  checkWorkspaceBudget([map]);
+  return { format: "mini-mindmap", version: 2, type: "map", ...map };
 }

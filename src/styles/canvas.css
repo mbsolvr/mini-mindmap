@@ -358,7 +358,9 @@
     animation: ghost-appear 120ms ease-out;
   }
   .collapse {
-    transition: background-color 140ms, border-color 140ms;
+    transition:
+      background-color 140ms,
+      border-color 140ms;
   }
   @keyframes branch-reveal {
     from {
@@ -869,16 +871,23 @@
 .summary-delete:not(:disabled):is(:hover, :focus-visible) {
   color: #d34c43;
 }
-.summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible)) > .summary-node .node {
+.summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible))
+  > .summary-node
+  .node {
   outline: 2px solid #d34c43;
   outline-offset: 2px;
   box-shadow: 0 0 0 4px #d34c4326;
 }
-.summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible)) > .summary-bracket {
+.summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible))
+  > .summary-bracket {
   filter: drop-shadow(0 0 3px #d34c43);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .summary-group:has(> .summary-delete:not(:disabled):is(:hover, :focus-visible)) > .summary-node .node {
+  .summary-group:has(
+      > .summary-delete:not(:disabled):is(:hover, :focus-visible)
+    )
+    > .summary-node
+    .node {
     animation: summary-delete-preview 180ms ease-out;
   }
   @keyframes summary-delete-preview {

@@ -167,7 +167,7 @@ export default function SettingsDialog({
       </div>
       <div className="settings-body">
         <nav className="settings-nav" aria-label={t("Settings categories")}>
-          {["General", "Appearance", "About"].map(label => (
+          {["General", "Appearance", "About"].map((label) => (
             <button
               type="button"
               key={label}
@@ -179,7 +179,10 @@ export default function SettingsDialog({
             </button>
           ))}
         </nav>
-        <section className="settings-content" aria-labelledby="settings-section-title">
+        <section
+          className="settings-content"
+          aria-labelledby="settings-section-title"
+        >
           <h3 id="settings-section-title">{t(section)}</h3>
           {section === "General" && (
             <>
@@ -198,9 +201,13 @@ export default function SettingsDialog({
                   aria-label={t("Auto-save workspace")}
                   aria-checked={autoSave}
                   onClick={onAutoSave}
-                ><span /></button>
+                >
+                  <span />
+                </button>
               </div>
-              <p className="settings-hint">{t("Choose a save location first to enable automatic saving.")}</p>
+              <p className="settings-hint">
+                {t("Choose a save location first to enable automatic saving.")}
+              </p>
             </>
           )}
           {section === "Appearance" && (
@@ -213,8 +220,20 @@ export default function SettingsDialog({
               />
               {(
                 [
-                  ["Fonts", [["systemFontSize", "System font size"], ["contentFontSize", "Content font size"]]],
-                  ["Layout", [["tabHeight", "Tab height"], ["statusHeight", "Status bar height"]]],
+                  [
+                    "Fonts",
+                    [
+                      ["systemFontSize", "System font size"],
+                      ["contentFontSize", "Content font size"],
+                    ],
+                  ],
+                  [
+                    "Layout",
+                    [
+                      ["tabHeight", "Tab height"],
+                      ["statusHeight", "Status bar height"],
+                    ],
+                  ],
                 ] as const
               ).map(([heading, settings]) => (
                 <div className="settings-group" key={heading}>
@@ -231,7 +250,10 @@ export default function SettingsDialog({
                           step="1"
                           value={display[key]}
                           onChange={(event) =>
-                            onDisplay({ ...display, [key]: Number(event.target.value) })
+                            onDisplay({
+                              ...display,
+                              [key]: Number(event.target.value),
+                            })
                           }
                         />
                         <output>{display[key]} px</output>
@@ -245,14 +267,20 @@ export default function SettingsDialog({
           {section === "About" && (
             <div className="settings-about">
               <h4>{appInfo.productName}</h4>
-              <p>{t("Version")} {appInfo.version}</p>
+              <p>
+                {t("Version")} {appInfo.version}
+              </p>
             </div>
           )}
         </section>
       </div>
       <div className="settings-actions">
         {section === "Appearance" && (
-          <button className="settings-reset" type="button" onClick={() => onDisplay(defaultDisplaySettings)}>
+          <button
+            className="settings-reset"
+            type="button"
+            onClick={() => onDisplay(defaultDisplaySettings)}
+          >
             {t("Reset sizes")}
           </button>
         )}

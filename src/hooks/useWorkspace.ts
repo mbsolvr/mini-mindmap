@@ -12,6 +12,7 @@ import {
   workspaceFromDocument,
 } from "../model.ts";
 import { validateMapLimits, validateTabCount } from "../limits.ts";
+import { checkWorkspaceBudget } from "../parseBudget.ts";
 import { hasSummaryConflict, settleSummaries } from "../summaries.ts";
 import type { MapContent, MindNode, Workspace } from "../types.ts";
 
@@ -51,14 +52,14 @@ export function useWorkspace(
   }
   function isTabDirty(tab: Workspace["tabs"][number]) {
     const saved = savedTabsRef.current!.get(tabViewKey(tab));
-    return (
-      !saved || !sameSnapshot(saved, tab)
-    );
+    return !saved || !sameSnapshot(saved, tab);
   }
 
   function updateDirty() {
-    const current = workspaceRef.current, saved = savedWorkspace.current;
-    dirtyRef.current = !savedRef.current ||
+    const current = workspaceRef.current,
+      saved = savedWorkspace.current;
+    dirtyRef.current =
+      !savedRef.current ||
       !sameSnapshot(current.tabs, saved.tabs) ||
       (current.tabs.length > 1 && current.active !== saved.active);
   }
@@ -74,10 +75,11 @@ export function useWorkspace(
   function commit(next: Workspace, record = true) {
     if (openingRef.current || next === workspaceRef.current) return false;
     try {
-      validateTabCount(next.tabs.length);
+      validateTabCount(next.tabs.length, workspaceRef.current.tabs.length);
       next.tabs.forEach((tab) => {
         if (!workspaceRef.current.tabs.includes(tab)) validateMapLimits(tab);
       });
+      checkWorkspaceBudget(next.tabs);
     } catch (error) {
       onInvalid(error instanceof Error ? error.message : String(error));
       return false;
@@ -92,7 +94,9 @@ export function useWorkspace(
   function changeTree(key: string, transform: (node: MindNode) => MindNode) {
     const ws = workspaceRef.current,
       tab = ws.tabs[ws.active];
-    const previousTree = tab.tree.summaries?.length ? treeForKey(tab, key) : null;
+    const previousTree = tab.tree.summaries?.length
+      ? treeForKey(tab, key)
+      : null;
     const previousNode = previousTree && findNode(previousTree, key);
     const tree = updateNode(tab.tree, key, transform);
     let next = tree === tab.tree ? tab : tabWithTree(tab, tree);
@@ -108,8 +112,12 @@ export function useWorkspace(
     if (previousNode) {
       const currentTree = treeForKey(next, key);
       const currentNode = currentTree && findNode(currentTree, key);
-      if (currentNode && (currentNode.children !== previousNode.children ||
-          currentNode.side !== previousNode.side || currentNode.layout !== previousNode.layout)) {
+      if (
+        currentNode &&
+        (currentNode.children !== previousNode.children ||
+          currentNode.side !== previousNode.side ||
+          currentNode.layout !== previousNode.layout)
+      ) {
         const settled = settleSummaries(next);
         if (!settled || hasSummaryConflict(settled)) {
           onInvalid("This change would create conflicting summaries");

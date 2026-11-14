@@ -40,6 +40,19 @@ fn lock_both(legacy: &Path, recovery: &Path) -> Result<(fs::File, fs::File), Str
 mod tests {
     use super::*;
     use crate::test_support::temp_dir;
+    fn retry_lock<T>(mut acquire: impl FnMut() -> Result<T, String>) -> T {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        loop {
+            match acquire() {
+                Ok(lock) => return lock,
+                Err(error) => assert!(
+                    std::time::Instant::now() < deadline,
+                    "lock was not released: {error}"
+                ),
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
     #[test]
     fn instance_lock_is_released_when_owner_exits() {
         let dir = temp_dir();
@@ -50,22 +63,12 @@ mod tests {
         assert!(lock_file(&dir.join("instance.lock")).is_err());
         assert!(lock_both(&legacy, &path).is_err());
         drop(first);
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
-        loop {
-            if lock_both(&legacy, &path).is_ok() {
-                break;
-            }
-            assert!(
-                std::time::Instant::now() < deadline,
-                "lock was not released"
-            );
-            std::thread::sleep(std::time::Duration::from_millis(10));
-        }
-        let existing = lock_file(&dir.join("instance.lock")).unwrap();
+        drop(retry_lock(|| lock_both(&legacy, &path)));
+        let existing = retry_lock(|| lock_file(&dir.join("instance.lock")));
         assert!(lock_both(&legacy, &path).is_err());
-        assert!(lock_file(&legacy).is_ok());
+        drop(retry_lock(|| lock_file(&legacy)));
         drop(existing);
-        let old_app = lock_file(&legacy).unwrap();
+        let old_app = retry_lock(|| lock_file(&legacy));
         assert!(lock_both(&legacy, &path).is_err());
         drop(old_app);
         fs::remove_dir_all(dir).unwrap();

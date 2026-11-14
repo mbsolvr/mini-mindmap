@@ -9,6 +9,7 @@ test("workspace commits record history and ignore changes while opening", async 
   const code = compiled.code.replace(/import \{ useRef, useState \} from "react";/, 'const { useRef, useState } = globalThis.__workspaceHookTest;')
     .replaceAll('"../model.ts"', `"${new URL("../src/model.ts", import.meta.url).href}"`)
     .replaceAll('"../limits.ts"', `"${new URL("../src/limits.ts", import.meta.url).href}"`)
+    .replaceAll('"../parseBudget.ts"', `"${new URL("../src/parseBudget.ts", import.meta.url).href}"`)
     .replaceAll('"../summaries.ts"', `"${new URL("../src/summaries.ts", import.meta.url).href}"`);
   const previous = globalThis.__workspaceHookTest;
   let rendered, notices = 0, error = "";

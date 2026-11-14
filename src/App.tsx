@@ -128,6 +128,7 @@ export default function App() {
     isDragging: () => !!dragRef.current,
     getRootKey: () =>
       workspaceRef.current.tabs[workspaceRef.current.active].tree.key,
+    getDocument: () => workspaceRef.current.tabs[workspaceRef.current.active],
     onSelectMany: (keys) => {
       setMultiKeys(new Set(keys));
       setSelected(keys[0] || null);
@@ -236,7 +237,10 @@ export default function App() {
   );
   const doc = workspace.tabs[workspace.active];
   const summaryTopics = useMemo(
-    () => multiKeys.size >= 2 ? prepareSummaryTopics(doc, Array.from(multiKeys)) : null,
+    () =>
+      multiKeys.size >= 2
+        ? prepareSummaryTopics(doc, Array.from(multiKeys))
+        : null,
     [doc, multiKeys],
   );
   const layout = resolveLayout(doc.tree.layout);
@@ -375,20 +379,21 @@ export default function App() {
     animationsRef.current.forEach((animation) => animation.finish());
     animationsRef.current = [];
   }
-  const { printDocument, exportImage, exportMarkdown, exportPdf, exportXmind } = useExports({
-    workspaceRef,
-    mapRef,
-    canvasRef,
-    zoom,
-    busyRef,
-    composingRef,
-    finishMotion,
-    working,
-    setEpoch,
-    setError,
-    setStatus,
-    t,
-  });
+  const { printDocument, exportImage, exportMarkdown, exportPdf, exportXmind } =
+    useExports({
+      workspaceRef,
+      mapRef,
+      canvasRef,
+      zoom,
+      busyRef,
+      composingRef,
+      finishMotion,
+      working,
+      setEpoch,
+      setError,
+      setStatus,
+      t,
+    });
   function selectOutline(key: string, center = false) {
     selectOne(key);
     if (center) requestAnimationFrame(() => centerNode(key));
@@ -471,13 +476,6 @@ export default function App() {
     [],
   );
 
-  useEffect(() => {
-    dragCancel();
-    panRef.current = null;
-    setMarquee(null);
-    setPanning(false);
-  }, [doc]);
-
   useTopicFocus({
     selected,
     viewKey,
@@ -502,7 +500,8 @@ export default function App() {
     key: handleGlobalKey,
   };
   function handleGlobalKey(event: KeyboardEvent) {
-    if (event.defaultPrevented || closeTarget || confirmation || settingsOpen) return;
+    if (event.defaultPrevented || closeTarget || confirmation || settingsOpen)
+      return;
     if (event.isComposing || event.keyCode === 229 || composingRef.current)
       return;
     const modifier = event.ctrlKey || event.metaKey;
@@ -643,9 +642,16 @@ export default function App() {
       if (event.key === "ArrowRight" && node.collapsed && node.children.length)
         changeTree(selected, (n) => ({ ...n, collapsed: false }));
       else {
-        const next = adjacentNode(tree, selected, event.key, new Set(
-          Array.from(inputs.current).filter(([, input]) => input.getClientRects().length > 0).map(([key]) => key),
-        ));
+        const next = adjacentNode(
+          tree,
+          selected,
+          event.key,
+          new Set(
+            Array.from(inputs.current)
+              .filter(([, input]) => input.getClientRects().length > 0)
+              .map(([key]) => key),
+          ),
+        );
         if (next) selectOne(next);
       }
     }
@@ -717,7 +723,9 @@ export default function App() {
             onUndo={() => travel(historyRef.current, redoRef.current)}
             onRedo={() => travel(redoRef.current, historyRef.current)}
             onAddChild={(sibling) => addChild(selected, sibling)}
-            canAddSibling={!doc.tree.summaries?.some((summary) => summary.key === selected)}
+            canAddSibling={
+              !doc.tree.summaries?.some((summary) => summary.key === selected)
+            }
             onAddFloating={addFloating}
             onAddSummary={addSummary}
             canAddSummary={!!summaryTopics}
@@ -768,6 +776,8 @@ export default function App() {
           onPointerEnd={panEnd}
           onContextMenu={canvasContextMenu}
           floating={{
+            getDocument: () =>
+              workspaceRef.current.tabs[workspaceRef.current.active],
             topics: doc.floatingTopics || noFloatingTopics,
             notes: doc.floatingNotes || [],
             noteFocus,
@@ -929,9 +939,13 @@ export default function App() {
             setContext(null);
             startRelation(key);
           }}
-          multipleTopics={!!context && multiKeys.has(context.key) && multiKeys.size >= 2}
+          multipleTopics={
+            !!context && multiKeys.has(context.key) && multiKeys.size >= 2
+          }
           onTopicSummary={addSummary}
-          canAddSummary={!!context && multiKeys.has(context.key) && !!summaryTopics}
+          canAddSummary={
+            !!context && multiKeys.has(context.key) && !!summaryTopics
+          }
           onTopicRemove={(key) => {
             if (multiKeys.has(key) && multiKeys.size > 1) {
               if (changeMap((map) => removeMapTopics(map, multiKeys)))

@@ -1,16 +1,18 @@
 export default {
-  "General": "一般",
-  "Appearance": "外観",
-  "About": "このアプリについて",
+  General: "一般",
+  Appearance: "外観",
+  About: "このアプリについて",
   "Settings categories": "設定カテゴリー",
-  "Fonts": "フォント",
-  "Version": "バージョン",
+  Fonts: "フォント",
+  Version: "バージョン",
   "Reset sizes": "サイズをリセット",
   "Auto-save workspace": "ワークスペースを自動保存",
-  "Choose a save location first to enable automatic saving.": "自動保存するには、最初に保存先を選んでください。",
+  "Choose a save location first to enable automatic saving.":
+    "自動保存するには、最初に保存先を選んでください。",
   "New workspace": "新規ワークスペース",
   "New workspace?": "新しいワークスペースを作成しますか？",
-  "Creating a new workspace closes all current tabs and discards unsaved changes. Continue?": "現在のすべてのタブを閉じ、未保存の変更を破棄して新しいワークスペースを作成します。続行しますか？",
+  "Creating a new workspace closes all current tabs and discards unsaved changes. Continue?":
+    "現在のすべてのタブを閉じ、未保存の変更を破棄して新しいワークスペースを作成します。続行しますか？",
   "Discard and create": "破棄して作成",
   "Could not create workspace: ": "ワークスペースを作成できませんでした: ",
   "Import XMind…": "XMind をインポート…",
@@ -20,16 +22,22 @@ export default {
   "Invalid or unsupported XMind file": "無効または未対応の XMind ファイルです",
   "XMind import failed: ": "XMind のインポートに失敗しました: ",
   "XMind export failed: ": "XMind のエクスポートに失敗しました: ",
-  "Some XMind features could not be represented exactly. Check the imported maps.": "一部の XMind 機能を正確に再現できませんでした。インポートしたマップを確認してください。",
-  "Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.": "一部の要約や関連線の曲線は Mini Mindmap 拡張を使用しており、XMind では表示が異なる場合があります。",
-  "This change would create conflicting summaries": "この変更により要約が競合します",
-  "This move would create conflicting summaries": "この移動により要約が競合します",
-  "Keep at least one topic outside its summary": "要約の外に対象トピックを少なくとも1つ残してください",
+  "Some XMind features could not be represented exactly. Check the imported maps.":
+    "一部の XMind 機能を正確に再現できませんでした。インポートしたマップを確認してください。",
+  "Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.":
+    "一部の要約や関連線の曲線は Mini Mindmap 拡張を使用しており、XMind では表示が異なる場合があります。",
+  "This change would create conflicting summaries":
+    "この変更により要約が競合します",
+  "This move would create conflicting summaries":
+    "この移動により要約が競合します",
+  "Keep at least one topic outside its summary":
+    "要約の外に対象トピックを少なくとも1つ残してください",
   Summary: "要約",
   Summaries: "要約",
   "Add summary": "要約を追加",
   "Delete summary": "要約を削除",
-  "Delete summary, its child topics, and their connections": "要約とその子トピック、および関連線を削除",
+  "Delete summary, its child topics, and their connections":
+    "要約とその子トピック、および関連線を削除",
   "Invalid summary data": "要約データが無効です",
   "Select at least two topics to add a summary":
     "要約を追加するにはトピックを2つ以上選択してください",
@@ -50,10 +58,16 @@ export default {
     "画像が 10 MB を超えています。小さい画像を使用してください。",
   "Invalid topic style": "トピックの書式が無効です",
   "Invalid topic data": "トピックのデータが無効です",
-  "A workspace can contain at most 100 tabs": "ワークスペースには最大 100 個のタブを含められます",
-  "A map can contain at most 10 connections": "1 つのマップには最大 10 本の関連線を含められます",
-  "Document exceeds the 100000 structure limit": "ドキュメントが 100000 個の構造の上限を超えています",
-  "Document exceeds the 100000 structure or 512 nesting limit": "ドキュメントが 100000 個の構造または 512 段の入れ子の上限を超えています",
+  "A workspace can contain at most 100 tabs":
+    "ワークスペースには最大 100 個のタブを含められます",
+  "A map can contain at most 5000 connections":
+    "1 つのマップには最大 5000 本の関連線を含められます",
+  "A workspace file can contain at most 9999 tabs":
+    "ワークスペースファイルには最大 9999 個のタブを含められます",
+  "Document exceeds the 100000 structure limit":
+    "ドキュメントが 100000 個の構造の上限を超えています",
+  "Document exceeds the 100000 structure or 512 nesting limit":
+    "ドキュメントが 100000 個の構造または 512 段の入れ子の上限を超えています",
   "Invalid connection data": "関連線のデータが無効です",
   "Recover unsaved work?": "未保存の内容を復元しますか？",
   "Recovery draft is invalid": "復元用の下書きが無効です",

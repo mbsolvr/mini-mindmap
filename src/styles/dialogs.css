@@ -106,13 +106,13 @@
 .settings-group h4 {
   margin: 22px 0 4px;
   color: var(--ui-muted);
-  font-size: .9em;
+  font-size: 0.9em;
   font-weight: 500;
 }
 .settings-hint {
   margin: 10px 0;
   color: var(--ui-muted);
-  font-size: .9em;
+  font-size: 0.9em;
   line-height: 1.5;
 }
 .settings-row .autosave-switch:focus-visible {

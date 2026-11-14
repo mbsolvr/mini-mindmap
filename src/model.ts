@@ -270,8 +270,12 @@ export function sameSnapshot(left: unknown, right: unknown): boolean {
   if (!left || !right || typeof left !== "object" || typeof right !== "object")
     return false;
   if (Array.isArray(left) !== Array.isArray(right)) return false;
-  const a = left as Record<string, unknown>, b = right as Record<string, unknown>;
+  const a = left as Record<string, unknown>,
+    b = right as Record<string, unknown>;
   const keys = Object.keys(a).filter((key) => a[key] !== undefined);
-  return keys.length === Object.keys(b).filter((key) => b[key] !== undefined).length &&
-    keys.every((key) => sameSnapshot(a[key], b[key]));
+  return (
+    keys.length ===
+      Object.keys(b).filter((key) => b[key] !== undefined).length &&
+    keys.every((key) => sameSnapshot(a[key], b[key]))
+  );
 }

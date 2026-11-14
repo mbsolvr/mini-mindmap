@@ -1,3 +1,4 @@
+import { isComposingKey } from "../keyboard.ts";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { MindNode } from "../types.ts";
@@ -166,6 +167,10 @@ export default function TabBar({
                       setEditing(null);
                     }}
                     onKeyDown={(event) => {
+                      if (isComposingKey(event)) {
+                        event.stopPropagation();
+                        return;
+                      }
                       if (
                         (event.ctrlKey || event.metaKey) &&
                         !event.altKey &&

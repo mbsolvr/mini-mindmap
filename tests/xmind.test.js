@@ -19,20 +19,46 @@ test('100 sheets import and save normally; a 101st sheet is rejected', async () 
   assert.deepEqual(JSON.parse(await readArchive(await createArchive(JSON.stringify(workspace)))), workspace);
   sheets.push({ id: 'extra', rootTopic: { id: 'root', title: 'Extra' } });
   await assert.rejects(readXmind(await encode(sheets)), /100 tabs/);
+  assert.deepEqual((await readXmind((await createXmind(workspace)).contents)).workspace, workspace);
+  await assert.rejects(createXmind({ ...workspace, tabs: [...workspace.tabs, workspace.tabs[0]] }), /100 tabs/);
 });
 
-test('10 connections round trip; an 11th connection is rejected on import and export', async () => {
+test('legacy maps with 11 connections survive native and XMind round trips', async () => {
   const sheet = { rootTopic: { id: 'root', title: 'Root', children: { attached:
     Array.from({ length: 11 }, (_, i) => ({ id: `n${i}`, title: `Topic ${i}` })) } },
-    relationships: Array.from({ length: 10 }, (_, i) => ({ id: `rel${i}`, end1Id: 'root', end2Id: `n${i}`, title: '' })) };
+    relationships: Array.from({ length: 11 }, (_, i) => ({ id: `rel${i}`, end1Id: 'root', end2Id: `n${i}`, title: '' })) };
   const { workspace } = await readXmind(await encode([sheet]));
-  assert.equal(workspace.tabs[0].tree.relations.length, 10);
+  assert.equal(workspace.tabs[0].tree.relations.length, 11);
   assert.deepEqual((await readXmind((await createXmind(workspace)).contents)).workspace, workspace);
-  sheet.relationships.push({ id: 'extra', end1Id: 'root', end2Id: 'n10', title: '' });
-  await assert.rejects(readXmind(await encode([sheet])), /10 connections/);
-  workspace.tabs[0].tree.relations.push({ relKey: 'extra', from: 'root', to: 'n10', label: '' });
-  await assert.rejects(createXmind(workspace), /10 connections/);
-  await assert.rejects(createArchive(JSON.stringify(workspace)), /10 connections/);
+  assert.deepEqual(JSON.parse(await readArchive(await createArchive(JSON.stringify(workspace)))), workspace);
+});
+
+test('connection count accepts 5000 and rejects 5001 before import or export', async () => {
+  const topics = Array.from({ length: 102 }, (_, i) => ({ id: `n${i}`, title: '' }));
+  const relationships = [];
+  for (let i = 0; i < topics.length && relationships.length < 5001; i++)
+    for (let j = i + 1; j < topics.length && relationships.length < 5001; j++)
+      relationships.push({ id: `r${relationships.length}`, end1Id: topics[i].id, end2Id: topics[j].id, title: '' });
+  const extra = relationships.pop();
+  const sheet = { rootTopic: { ...topics[0], children: { attached: topics.slice(1) } }, relationships };
+  const { workspace } = await readXmind(await encode([sheet]));
+  assert.equal(workspace.tabs[0].tree.relations.length, 5000);
+  assert.deepEqual((await readXmind((await createXmind(workspace)).contents)).workspace, workspace);
+  relationships.push(extra);
+  await assert.rejects(readXmind(await encode([sheet])), /5000 connections/);
+  workspace.tabs[0].tree.relations.push({ relKey: extra.id, from: extra.end1Id, to: extra.end2Id, label: '' });
+  await assert.rejects(createXmind(workspace), /5000 connections/);
+  await assert.rejects(createArchive(JSON.stringify(workspace)), /5000 connections/);
+});
+
+test('external summaries use generated keys when their member topics omit IDs', async () => {
+  const { workspace } = await readXmind(await encode([{ rootTopic: { id: 'root', title: 'Root',
+    children: { attached: [{ title: 'A' }, { title: 'B' }], summary: [{ id: 'summary', title: 'Summary' }] },
+    summaries: [{ topicId: 'summary', range: '(0,1)' }] } }]));
+  const tree = workspace.tabs[0].tree;
+  assert.deepEqual(tree.summaries[0].topics, tree.children.slice(0, 2).map(node => node.key));
+  assert.ok(tree.summaries[0].topics.every(Boolean));
+  assert.deepEqual(JSON.parse(await readArchive(await createArchive(JSON.stringify(workspace)))), workspace);
 });
 
 test('independent topics retain their full 100-level depth on round trip', async () => {

@@ -12,10 +12,16 @@ export function connectorPath(
   const edge =
     collapse &&
     (vertical
-      ? direction > 0 ? collapse.y + collapse.height : collapse.y
-      : direction > 0 ? collapse.x + collapse.width : collapse.x);
+      ? direction > 0
+        ? collapse.y + collapse.height
+        : collapse.y
+      : direction > 0
+        ? collapse.x + collapse.width
+        : collapse.x);
   const lead =
-    edge != null && (edge - from) * direction > 0 && (to - edge) * direction >= 0
+    edge != null &&
+    (edge - from) * direction > 0 &&
+    (to - edge) * direction >= 0
       ? edge
       : from;
   const control = lead + (to - lead) / 3;

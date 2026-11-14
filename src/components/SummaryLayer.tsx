@@ -1,5 +1,11 @@
 import { verticalIndex } from "../selection.ts";
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { FloatingTopic, MindNode } from "../types.ts";
 import { useT } from "../i18n.ts";
 import MindNodeView from "./MindNode.tsx";
@@ -29,17 +35,23 @@ export default function SummaryLayer({
   onRemove,
 }: Props) {
   const t = useT();
-  const summaries = useMemo(() => new Map(tree.summaries?.map((item) => [item.key, item])), [tree.summaries]);
+  const summaries = useMemo(
+    () => new Map(tree.summaries?.map((item) => [item.key, item])),
+    [tree.summaries],
+  );
   const [positions, setPositions] = useState<
     { key: string; x: number; y: number; height: number; left: boolean }[]
   >([]);
   const passes = useRef(0);
   const resetPasses = useRef(0);
-  useEffect(() => () => {
-    cancelAnimationFrame(resetPasses.current);
-    resetPasses.current = 0;
-    passes.current = 0;
-  }, []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(resetPasses.current);
+      resetPasses.current = 0;
+      passes.current = 0;
+    },
+    [],
+  );
   useLayoutEffect(() => {
     const map = mapRef.current;
     if (!map || !tree.summaries?.length) {
@@ -61,19 +73,26 @@ export default function SummaryLayer({
         ),
       );
       const groups = new Map(
-        Array.from(map.querySelectorAll<HTMLElement>(".summary-group"), (group) => [
-          group.dataset.summaryKey,
-          group,
-        ]),
+        Array.from(
+          map.querySelectorAll<HTMLElement>(".summary-group"),
+          (group) => [group.dataset.summaryKey, group],
+        ),
       );
-      const groupBounds = new Map(Array.from(groups, ([key, group]) => {
-        const content = group.querySelector<HTMLElement>(":scope > .summary-node");
-        return [key, {
-          rect: group.getBoundingClientRect(),
-          content: content?.getBoundingClientRect(),
-          left: group.classList.contains("summary-left"),
-        }];
-      }));
+      const groupBounds = new Map(
+        Array.from(groups, ([key, group]) => {
+          const content = group.querySelector<HTMLElement>(
+            ":scope > .summary-node",
+          );
+          return [
+            key,
+            {
+              rect: group.getBoundingClientRect(),
+              content: content?.getBoundingClientRect(),
+              left: group.classList.contains("summary-left"),
+            },
+          ];
+        }),
+      );
       const ordinaryBounds = Array.from(cards.values())
         .filter((card) => !card.closest(".summary-group"))
         .map((card) => card.getBoundingClientRect());
@@ -81,13 +100,19 @@ export default function SummaryLayer({
         const rows = summary.topics.map((key) =>
           cards.get(key)?.closest<HTMLElement>(".node-row"),
         );
-        if (rows.every((row, index) => {
-          if (!row) return true;
-          const key = summary.topics[index], owner = treeForKey(content, key);
-          return owner && findNode(owner, key)?.collapsed;
-        })) return null;
+        if (
+          rows.every((row, index) => {
+            if (!row) return true;
+            const key = summary.topics[index],
+              owner = treeForKey(content, key);
+            return owner && findNode(owner, key)?.collapsed;
+          })
+        )
+          return null;
         const members = rows.flatMap((row) =>
-          row ? Array.from(row.querySelectorAll<HTMLElement>("[data-drop-key]")) : [],
+          row
+            ? Array.from(row.querySelectorAll<HTMLElement>("[data-drop-key]"))
+            : [],
         );
         return {
           summary,
@@ -96,12 +121,27 @@ export default function SummaryLayer({
         };
       });
       const present = measured.filter((item) => item !== null);
-      const obstacles = ordinaryBounds.map((rect) => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, index: -1, side: false }));
+      const obstacles = ordinaryBounds.map((rect) => ({
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        index: -1,
+        side: false,
+      }));
       for (const item of present) {
         const group = groupBounds.get(item.summary.key);
         if (!group) continue;
         for (const rect of [group.rect, group.content])
-          if (rect) obstacles.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, index: item.index, side: group.left });
+          if (rect)
+            obstacles.push({
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom,
+              index: item.index,
+              side: group.left,
+            });
       }
       const candidates = verticalIndex(obstacles);
       const next = present.flatMap((item) => {
@@ -115,9 +155,14 @@ export default function SummaryLayer({
         if (content) {
           const center = top + Math.max(bottom - top, 26 * zoom) / 2;
           const halfHeight = content.height / 2;
-          const upper = Math.min(top, center - halfHeight), lower = Math.max(bottom, center + halfHeight);
+          const upper = Math.min(top, center - halfHeight),
+            lower = Math.max(bottom, center + halfHeight);
           for (const rect of candidates(upper, lower)) {
-            if (rect.index >= 0 && (rect.index >= index || rect.side !== onLeft)) continue;
+            if (
+              rect.index >= 0 &&
+              (rect.index >= index || rect.side !== onLeft)
+            )
+              continue;
             if (onLeft) left = Math.min(left, rect.left);
             else right = Math.max(right, rect.right);
           }
@@ -222,8 +267,12 @@ export default function SummaryLayer({
             <button
               type="button"
               className="summary-delete"
-              aria-label={t("Delete summary, its child topics, and their connections")}
-              title={t("Delete summary, its child topics, and their connections")}
+              aria-label={t(
+                "Delete summary, its child topics, and their connections",
+              )}
+              title={t(
+                "Delete summary, its child topics, and their connections",
+              )}
               disabled={node.opening}
               onClick={() => onRemove(summary.key)}
             >

@@ -48,11 +48,13 @@ export default function BranchLayer({
             ".layout-fishbone,.layout-reverse-fishbone",
           );
         return parent && child && row && !fishboneRoot
-          ? [{
-              parent,
-              child,
-              collapse: row.querySelector<HTMLElement>(":scope > .collapse"),
-            }]
+          ? [
+              {
+                parent,
+                child,
+                collapse: row.querySelector<HTMLElement>(":scope > .collapse"),
+              },
+            ]
           : [];
       });
       observer.disconnect();
@@ -92,10 +94,12 @@ export default function BranchLayer({
         bounds.y +
         bounds.height / 2 +
         (parseFloat(
-          card.parentElement?.style.getPropertyValue("--connector-offset") || "",
+          card.parentElement?.style.getPropertyValue("--connector-offset") ||
+            "",
         ) || 0);
       const paths = branches.map(({ parent, child, collapse }) => {
-        const a = rect(parent), b = rect(child);
+        const a = rect(parent),
+          b = rect(child);
         const vertical = layout === "org";
         const left = b.x + b.width / 2 < a.x + a.width / 2;
         const start = vertical
@@ -105,7 +109,10 @@ export default function BranchLayer({
           ? { x: b.x + b.width / 2, y: b.y }
           : { x: left ? b.x + b.width : b.x, y: y(child, b) };
         return connectorPath(
-          start, end, vertical, collapse ? rect(collapse) : undefined,
+          start,
+          end,
+          vertical,
+          collapse ? rect(collapse) : undefined,
         );
       });
       path.setAttribute("d", paths.join(""));
@@ -124,7 +131,8 @@ export default function BranchLayer({
             (node) => node.nodeType === Node.ELEMENT_NODE,
           ),
         )
-      ) watch();
+      )
+        watch();
       schedule();
     });
     watch();

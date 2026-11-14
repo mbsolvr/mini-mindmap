@@ -71,7 +71,9 @@ export function useRelations({
       setStatus("Select a source topic for the connection");
       return;
     }
-    sourceView.current = tabViewKey(workspaceRef.current.tabs[workspaceRef.current.active]);
+    sourceView.current = tabViewKey(
+      workspaceRef.current.tabs[workspaceRef.current.active],
+    );
     setRelationSource(key);
     setSelectedRelation(null);
     setPane("");
@@ -87,7 +89,7 @@ export function useRelations({
       return;
     }
     if ((tree.relations?.length || 0) >= MAX_RELATIONS) {
-      setStatus("A map can contain at most 10 connections");
+      setStatus("A map can contain at most 5000 connections");
       return;
     }
     const next = addRelation(

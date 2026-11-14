@@ -8,15 +8,15 @@ export function removeMapTopics(
 ): MapContent {
   let next = removeOnce(map, keys);
   if (next === map) return map;
-  const orphans = (next.tree.summaries || []).filter((summary) => !summary.topics.length);
-  if (orphans.length) next = removeOnce(next, new Set(orphans.map((summary) => summary.key)));
+  const orphans = (next.tree.summaries || []).filter(
+    (summary) => !summary.topics.length,
+  );
+  if (orphans.length)
+    next = removeOnce(next, new Set(orphans.map((summary) => summary.key)));
   return settleSummaries(next) || map;
 }
 
-function removeOnce(
-  map: MapContent,
-  keys: ReadonlySet<string>,
-): MapContent {
+function removeOnce(map: MapContent, keys: ReadonlySet<string>): MapContent {
   const removed = new Set<string>();
   function collect(node: MindNode) {
     removed.add(node.key);

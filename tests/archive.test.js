@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import JSZip from "jszip";
 import { createArchive, readArchive } from "../src/archive.ts";
 import { parseDocument } from "../src/model.ts";
+import { MAX_PARSE_CONTAINERS } from "../src/parseBudget.ts";
 import { readFile } from "node:fs/promises";
 
 test("reference file opens and round trips", async () => {
@@ -10,6 +11,21 @@ test("reference file opens and round trips", async () => {
   const expected = JSON.parse(await readFile(new URL("./fixtures/reference.json", import.meta.url), "utf8"));
   assert.deepEqual(parseDocument(await readArchive(fixture.toString("base64"))), expected);
   assert.deepEqual(parseDocument(await readArchive(await createArchive(JSON.stringify(expected)))), expected);
+});
+
+test("manifest metadata shares the map parsing budget without losing the exact boundary", async () => {
+  for (const type of ["map", "workspace"]) {
+    const zip = new JSZip();
+    const manifest = { format: "mini-mindmap", version: 2, type, active: 0, maps: ["maps/1.json"],
+      padding: Array(MAX_PARSE_CONTAINERS - (type === "workspace" ? 10 : 8)).fill({}) };
+    zip.file("maps/1.json", JSON.stringify({ tree: { key: "root", text: "", children:
+      ["a", "b"].map(key => ({ key, text: key, children: [] })) } }), { createFolders: false });
+    zip.file("manifest.json", JSON.stringify(manifest));
+    assert.equal(parseDocument(await readArchive(await zip.generateAsync({ type: "base64" }))).type, type);
+    manifest.padding.push({});
+    zip.file("manifest.json", JSON.stringify(manifest));
+    await assert.rejects(readArchive(await zip.generateAsync({ type: "base64" })), /Invalid/);
+  }
 });
 
 test("repeated edits and archive round trips preserve a large map", async () => {

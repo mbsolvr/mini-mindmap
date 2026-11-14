@@ -179,7 +179,9 @@ export function makeSvg(map: HTMLElement, canvas: HTMLElement, zoom: number) {
           const collapse = row.querySelector<HTMLElement>(":scope > .collapse");
           add(lines, "path", {
             d: connectorPath(
-              { x: x1, y: y1 }, { x: x2, y: y2 }, true,
+              { x: x1, y: y1 },
+              { x: x2, y: y2 },
+              true,
               collapse ? rect(collapse) : undefined,
             ),
             "stroke-width": "1pt",
@@ -197,7 +199,12 @@ export function makeSvg(map: HTMLElement, canvas: HTMLElement, zoom: number) {
           };
           const collapse = row.querySelector<HTMLElement>(":scope > .collapse");
           add(lines, "path", {
-            d: connectorPath(start, end, false, collapse ? rect(collapse) : undefined),
+            d: connectorPath(
+              start,
+              end,
+              false,
+              collapse ? rect(collapse) : undefined,
+            ),
             "stroke-width": "1pt",
           });
         }
@@ -391,7 +398,16 @@ export function makeSvg(map: HTMLElement, canvas: HTMLElement, zoom: number) {
       ),
     );
   }
-  return { svg: new XMLSerializer().serializeToString(svg).replace(/[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu, "\uFFFD"), width, height };
+  return {
+    svg: new XMLSerializer()
+      .serializeToString(svg)
+      .replace(
+        /[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu,
+        "\uFFFD",
+      ),
+    width,
+    height,
+  };
 }
 
 export async function pngBase64(

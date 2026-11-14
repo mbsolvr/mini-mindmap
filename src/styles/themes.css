@@ -65,8 +65,15 @@ main[data-theme="midnight"] {
 .canvas[data-template] .branch::after {
   display: none;
 }
-.canvas[data-template] :is(.layout-fishbone, .layout-reverse-fishbone) > .node-row > .children::before,
-.canvas[data-template] :is(.layout-fishbone, .layout-reverse-fishbone) > .node-row > .children > .branch::before {
+.canvas[data-template]
+  :is(.layout-fishbone, .layout-reverse-fishbone)
+  > .node-row
+  > .children::before,
+.canvas[data-template]
+  :is(.layout-fishbone, .layout-reverse-fishbone)
+  > .node-row
+  > .children
+  > .branch::before {
   display: block;
 }
 .canvas[data-template] .node {

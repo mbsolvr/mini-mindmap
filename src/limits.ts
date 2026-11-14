@@ -2,16 +2,22 @@ import type { MapContent, MindNode, RelationControls } from "./types.ts";
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_TABS = 100;
-export const MAX_RELATIONS = 10;
+export const MAX_FILE_TABS = 9999;
+export const MAX_RELATIONS = 5000;
 
-export function validateTabCount(count: number): void {
-  if (count > MAX_TABS)
+export function validateTabCount(count: number, previous = 0): void {
+  if (count > MAX_TABS && count > previous)
     throw new Error("A workspace can contain at most 100 tabs");
+}
+
+export function validateFileTabCount(count: number): void {
+  if (count > MAX_FILE_TABS)
+    throw new Error("A workspace file can contain at most 9999 tabs");
 }
 
 export function validateRelationCount(count: number): void {
   if (count > MAX_RELATIONS)
-    throw new Error("A map can contain at most 10 connections");
+    throw new Error("A map can contain at most 5000 connections");
 }
 
 export function validRelationControls(

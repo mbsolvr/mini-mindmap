@@ -92,7 +92,11 @@ export default function WorkspaceMenu({
             ["Undo", onUndo, "Ctrl+Z"],
             ["Redo", onRedo, "Ctrl+Y"],
             ["Add Child Topic", () => onAddChild(), "Tab"],
-            ["Add Sibling Topic", canAddSibling ? () => onAddChild(true) : null, "Enter"],
+            [
+              "Add Sibling Topic",
+              canAddSibling ? () => onAddChild(true) : null,
+              "Enter",
+            ],
             ["Add independent topic", () => onAddFloating("topic")],
             ["Add floating note", () => onAddFloating("note")],
             ["Add summary", canAddSummary ? onAddSummary : null],

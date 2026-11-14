@@ -9,7 +9,7 @@ async function loadComponentModule(name) {
   const file = new URL(`../src/components/${name}.tsx`, import.meta.url);
   const source = await readFile(file, "utf8");
   const compiled = await transform(source, { loader: "tsx", format: "esm" });
-  const code = (compiled.code.includes("import React") ? compiled.code : `import React from "react";\n${compiled.code}`).replaceAll('from "react"', `from "${import.meta.resolve("react")}"`).replace('import { useT } from "../i18n.ts";', 'const useT = () => text => text;').replace('import { MenuLabel } from "./AppMenu.tsx";', 'const MenuLabel = ({ label }) => React.createElement("span", null, label);').replaceAll('"../contextMenu.ts"', `"${new URL("../src/contextMenu.ts", import.meta.url).href}"`).replaceAll('"../textStyle.ts"', `"${new URL("../src/textStyle.ts", import.meta.url).href}"`).replaceAll('"../summaries.ts"', `"${new URL("../src/summaries.ts", import.meta.url).href}"`);
+  const code = (compiled.code.includes("import React") ? compiled.code : `import React from "react";\n${compiled.code}`).replaceAll('from "react"', `from "${import.meta.resolve("react")}"`).replace('import { useT } from "../i18n.ts";', 'const useT = () => text => text;').replace('import { MenuLabel } from "./AppMenu.tsx";', 'const MenuLabel = ({ label }) => React.createElement("span", null, label);').replaceAll('"../contextMenu.ts"', `"${new URL("../src/contextMenu.ts", import.meta.url).href}"`).replaceAll('"../textStyle.ts"', `"${new URL("../src/textStyle.ts", import.meta.url).href}"`).replaceAll('"../summaries.ts"', `"${new URL("../src/summaries.ts", import.meta.url).href}"`).replaceAll('"../keyboard.ts"', `"${new URL("../src/keyboard.ts", import.meta.url).href}"`);
   return import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
 }
 async function loadComponent(name) { return (await loadComponentModule(name)).default; }
@@ -38,7 +38,8 @@ test("top tabs render the active document, close control and new-tab control", a
 test("double-clicking only empty tab-strip space adds a tab", async () => {
   const source = await readFile(new URL("../src/components/TabBar.tsx", import.meta.url), "utf8");
   const compiled = await transform(source, { loader: "tsx", format: "esm" });
-  const code = compiled.code.replace(/import \{([^}]+)\} from "react";/, 'const React = globalThis.__tabTest.React; const {$1} = globalThis.__tabTest;').replace('import { useT } from "../i18n.ts";', 'const useT = () => text => text;');
+  const code = compiled.code.replace(/import \{([^}]+)\} from "react";/, 'const React = globalThis.__tabTest.React; const {$1} = globalThis.__tabTest;').replace('import { useT } from "../i18n.ts";', 'const useT = () => text => text;')
+    .replaceAll('"../keyboard.ts"', `"${new URL("../src/keyboard.ts", import.meta.url).href}"`);
   globalThis.__tabTest = {
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useRef: () => ({ current: null }), useState: value => [value, () => {}], useEffect() {}, useLayoutEffect() {}

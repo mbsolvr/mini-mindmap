@@ -66,7 +66,8 @@ test("canvas distinguishes blank clicks from marquee selection", async () => {
   let blank = 0, chosen;
   try {
     const { useCanvas } = await import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
-    const canvas = useCanvas({ viewKey: {}, inputs: { current: new Map() }, finishMotion() {}, isDragging: () => false, getRootKey: () => "root", onBlank: () => blank++, onSelectMany: keys => { chosen = keys; } });
+    const viewKey = {};
+    const canvas = useCanvas({ viewKey, inputs: { current: new Map() }, finishMotion() {}, isDragging: () => false, getRootKey: () => "root", getDocument: () => viewKey, onBlank: () => blank++, onSelectMany: keys => { chosen = keys; } });
     const pointer = { button: 0, pointerId: 1, clientX: 0, clientY: 0, target: {}, currentTarget: { setPointerCapture() {} }, preventDefault() {}, type: "pointerup" };
     canvas.panStart(pointer); canvas.panEnd(pointer);
     assert.equal(blank, 1);

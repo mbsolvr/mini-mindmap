@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject, SetStateAction } from "react";
+import type { MapContent } from "../types.ts";
 import { selectionBox, intersects } from "../selection.ts";
 
 type Bounds = { left: number; top: number; right: number; bottom: number };
@@ -11,6 +12,7 @@ type PanGesture = {
   moved: boolean;
   selecting: boolean;
   box: Bounds | null;
+  document: MapContent;
 };
 interface Options {
   viewKey: object;
@@ -18,6 +20,7 @@ interface Options {
   finishMotion: () => void;
   isDragging: () => boolean;
   getRootKey: () => string;
+  getDocument: () => MapContent;
   onSelectMany: (keys: string[]) => void;
   onBlank: () => void;
 }
@@ -28,6 +31,7 @@ export function useCanvas({
   finishMotion,
   isDragging,
   getRootKey,
+  getDocument,
   onSelectMany,
   onBlank,
 }: Options) {
@@ -50,18 +54,26 @@ export function useCanvas({
       previous = views.current.get(key) || { zoom: 1, pan: { x: 0, y: 0 } };
     const next = typeof value === "function" ? value(previous.zoom) : value;
     if (next !== previous.zoom) {
+      cancelPan();
       let pan = previous.pan;
-      const map = mapRef.current, canvas = canvasRef.current;
+      const map = mapRef.current,
+        canvas = canvasRef.current;
       if (map && canvas) {
-        const bounds = map.getBoundingClientRect(), viewport = canvas.getBoundingClientRect();
+        const bounds = map.getBoundingClientRect(),
+          viewport = canvas.getBoundingClientRect();
         const rendered = new DOMMatrix(map.style.transform);
         const ratio = next / previous.zoom;
         // Compensate for the left-center CSS origin, including changes not rendered yet.
         const originX = bounds.left + previous.pan.x - rendered.e;
-        const originY = bounds.top + bounds.height / 2 + previous.pan.y - rendered.f;
+        const originY =
+          bounds.top + bounds.height / 2 + previous.pan.y - rendered.f;
         pan = {
-          x: previous.pan.x + (viewport.left + viewport.width / 2 - originX) * (1 - ratio),
-          y: previous.pan.y + (viewport.top + viewport.height / 2 - originY) * (1 - ratio),
+          x:
+            previous.pan.x +
+            (viewport.left + viewport.width / 2 - originX) * (1 - ratio),
+          y:
+            previous.pan.y +
+            (viewport.top + viewport.height / 2 - originY) * (1 - ratio),
         };
       }
       views.current.set(key, { ...previous, zoom: next, pan });
@@ -81,6 +93,16 @@ export function useCanvas({
   const spaceHeld = useRef(false);
   const [panning, setPanning] = useState(false);
   const [marquee, setMarquee] = useState<Bounds | null>(null);
+
+  function cancelPan() {
+    panRef.current = null;
+    setPanning(false);
+    setMarquee(null);
+  }
+  useEffect(() => {
+    if (panRef.current && panRef.current.document !== getDocument())
+      cancelPan();
+  });
 
   function adjustZoom(step: number) {
     setZoom((value) =>
@@ -171,12 +193,17 @@ export function useCanvas({
       moved: false,
       selecting,
       box: null,
+      document: getDocument(),
     };
     setPanning(!selecting);
   }
   function panMove(event: React.PointerEvent<HTMLElement>) {
     const start = panRef.current;
     if (!start || start.pointer !== event.pointerId) return;
+    if (start.document !== getDocument()) {
+      cancelPan();
+      return;
+    }
     const dx = event.clientX - start.x,
       dy = event.clientY - start.y;
     if (Math.hypot(dx, dy) > 3) start.moved = true;
@@ -188,10 +215,13 @@ export function useCanvas({
   function panEnd(event: React.PointerEvent<HTMLElement>) {
     const start = panRef.current;
     if (!start || start.pointer !== event.pointerId) return;
-    panRef.current = null;
-    setPanning(false);
-    setMarquee(null);
-    if (event.type === "pointercancel") return;
+    cancelPan();
+    if (
+      event.type === "pointercancel" ||
+      event.type === "lostpointercapture" ||
+      start.document !== getDocument()
+    )
+      return;
     if (
       start.selecting &&
       start.moved &&
@@ -237,6 +267,10 @@ export function useCanvas({
       spaceHeld.current = false;
       canvas!.classList.remove("pan-ready");
     }
+    function blur() {
+      releaseSpace();
+      cancelPan();
+    }
     function keyDown(event: KeyboardEvent) {
       if (
         event.code !== "Space" ||
@@ -260,6 +294,7 @@ export function useCanvas({
     }
     function wheel(event: WheelEvent) {
       event.preventDefault();
+      cancelPan();
       const scaleX =
         event.deltaMode === 1
           ? 16
@@ -287,13 +322,13 @@ export function useCanvas({
     }
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
-    window.addEventListener("blur", releaseSpace);
+    window.addEventListener("blur", blur);
     canvas.addEventListener("wheel", wheel, { passive: false });
     return () => {
       canvas.removeEventListener("wheel", wheel);
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
-      window.removeEventListener("blur", releaseSpace);
+      window.removeEventListener("blur", blur);
     };
   }, []);
   return {

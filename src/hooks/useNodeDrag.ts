@@ -1,5 +1,5 @@
 import { treeIndex } from "../topicIndex.ts";
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { containsNode, findNode, tabViewKey, treeForKey } from "../model.ts";
 import { moveMapTopics, selectedMapTopics } from "../mapMove.ts";
@@ -23,6 +23,7 @@ type Drag = {
   tab: number;
   viewKey: object;
   map: MapContent;
+  zoom: number;
 };
 interface Options {
   workspace: Workspace;
@@ -82,7 +83,9 @@ export function useNodeDrag({
     if (!treeForKey(map, key) || key === map.tree.key || !mapRef.current)
       return;
     const requested = multiKeys.has(key) ? Array.from(multiKeys) : [key];
-    const summaryKeys = new Set(map.tree.summaries?.map((summary) => summary.key));
+    const summaryKeys = new Set(
+      map.tree.summaries?.map((summary) => summary.key),
+    );
     if (requested.some((item) => summaryKeys.has(item))) {
       if (!multiKeys.has(key)) setMultiKeys(new Set());
       setSelected(key);
@@ -134,6 +137,7 @@ export function useNodeDrag({
       tab: ws.active,
       viewKey: tabViewKey(map),
       map,
+      zoom,
     };
     setSelected(key);
     setSelectedRelation(null);
@@ -141,7 +145,10 @@ export function useNodeDrag({
   function dragMove(event: React.PointerEvent<HTMLElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointer !== event.pointerId) return;
-    if (workspaceRef.current.tabs[workspaceRef.current.active] !== drag.map) {
+    if (
+      workspaceRef.current.tabs[workspaceRef.current.active] !== drag.map ||
+      drag.zoom !== zoom
+    ) {
       dragCancel();
       return;
     }
@@ -244,7 +251,10 @@ export function useNodeDrag({
   function dragEnd(event: React.PointerEvent<HTMLElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointer !== event.pointerId) return;
-    if (workspaceRef.current.tabs[workspaceRef.current.active] !== drag.map) {
+    if (
+      workspaceRef.current.tabs[workspaceRef.current.active] !== drag.map ||
+      drag.zoom !== zoom
+    ) {
       dragCancel();
       return;
     }
@@ -263,12 +273,17 @@ export function useNodeDrag({
       return;
     let next = map;
     if (drag.area === "target" && drag.target)
-      next = moveMapTopics(map, drag.keys, {
-        kind: "attach",
-        ...drag.target,
-        layout,
-      }, () => setError("Keep at least one topic outside its summary"),
-      () => setError("This move would create conflicting summaries"));
+      next = moveMapTopics(
+        map,
+        drag.keys,
+        {
+          kind: "attach",
+          ...drag.target,
+          layout,
+        },
+        () => setError("Keep at least one topic outside its summary"),
+        () => setError("This move would create conflicting summaries"),
+      );
     else if (drag.area === "blank") {
       const bounds = mapRef.current.getBoundingClientRect(),
         positions = new Map<string, { x: number; y: number }>();
@@ -279,16 +294,23 @@ export function useNodeDrag({
           y: (event.clientY - bounds.top - offset.y) / zoom,
         });
       });
-      next = moveMapTopics(map, drag.keys, { kind: "float", positions },
+      next = moveMapTopics(
+        map,
+        drag.keys,
+        { kind: "float", positions },
         () => setError("Keep at least one topic outside its summary"),
-        () => setError("This move would create conflicting summaries"));
+        () => setError("This move would create conflicting summaries"),
+      );
     }
     if (next === map) return;
     function hasImage(node: MindNode): boolean {
       return !!node.image || node.children.some(hasImage);
     }
     const sources = selectedMapTopics(map, drag.keys);
-    const touchedKeys = [...drag.keys, ...(drag.target ? [drag.target.key] : [])];
+    const touchedKeys = [
+      ...drag.keys,
+      ...(drag.target ? [drag.target.key] : []),
+    ];
     const affected = new Set<string>();
     for (const source of sources)
       for (const key of treeIndex(source).keys()) affected.add(key);
@@ -306,11 +328,7 @@ export function useNodeDrag({
       [summary.key, ...summary.topics].some((key) => affected.has(key)),
     );
     // shortcut: image and summary drops skip motion until the native flicker is isolated.
-    if (
-      mapRef.current &&
-      !touchesSummary &&
-      !sources.some(hasImage)
-    )
+    if (mapRef.current && !touchesSummary && !sources.some(hasImage))
       layoutBefore.current = captureNodePositions(mapRef.current);
     else layoutBefore.current = null;
     changeMap(next);
@@ -321,6 +339,22 @@ export function useNodeDrag({
     setCanDetach(false);
     setDragGhost(null);
   }
+  useLayoutEffect(() => {
+    const drag = dragRef.current;
+    if (
+      drag &&
+      (workspace.tabs[workspace.active] !== drag.map || drag.zoom !== zoom)
+    )
+      dragCancel();
+  });
+  useEffect(() => {
+    window.addEventListener("blur", dragCancel);
+    window.addEventListener("wheel", dragCancel, true);
+    return () => {
+      window.removeEventListener("blur", dragCancel);
+      window.removeEventListener("wheel", dragCancel, true);
+    };
+  }, []);
   useLayoutEffect(() => {
     if (!layoutBefore.current) return;
     const before = layoutBefore.current;

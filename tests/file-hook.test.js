@@ -14,6 +14,7 @@ async function loadHook(tag) {
     .replaceAll('"../model.ts"', `"${new URL("../src/model.ts", import.meta.url).href}"`)
     .replaceAll('"../xmind.ts"', `"${new URL("../src/xmind.ts", import.meta.url).href}"`)
     .replaceAll('"../limits.ts"', `"${new URL("../src/limits.ts", import.meta.url).href}"`)
+    .replaceAll('"../parseBudget.ts"', `"${new URL("../src/parseBudget.ts", import.meta.url).href}"`)
     .replaceAll('"../archive.ts"', `"${new URL("../src/archive.ts", import.meta.url).href}"`)
     .replaceAll('"../tauri.ts"', `"${new URL("../src/tauri.ts", import.meta.url).href}"`);
   return (await import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}#${tag}`)).useDocumentFile;

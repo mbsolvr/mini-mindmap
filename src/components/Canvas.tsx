@@ -61,6 +61,7 @@ export default function Canvas({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
+      onLostPointerCapture={onPointerEnd}
       onContextMenu={onContextMenu}
     >
       <div

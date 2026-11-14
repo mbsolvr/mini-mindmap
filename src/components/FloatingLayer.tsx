@@ -1,6 +1,6 @@
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import MindNode from "./MindNode.tsx";
-import type { FloatingNote, FloatingTopic } from "../types.ts";
+import type { FloatingNote, FloatingTopic, MapContent } from "../types.ts";
 import { useT } from "../i18n.ts";
 import { textStyleCss } from "../textStyle.ts";
 
@@ -9,6 +9,7 @@ interface Props {
   notes: FloatingNote[];
   node: React.ComponentProps<typeof MindNode>;
   zoom: number;
+  getDocument: () => MapContent;
   noteFocus: string | null;
   fontSize: number;
   onNoteFocus: () => void;
@@ -27,6 +28,7 @@ function FloatingItem({
   children,
   className,
   noteKey,
+  getDocument,
 }: {
   x: number;
   y: number;
@@ -38,6 +40,7 @@ function FloatingItem({
   children: React.ReactNode;
   className: string;
   noteKey: string;
+  getDocument: () => MapContent;
 }) {
   const drag = useRef<{
     id: number;
@@ -46,11 +49,37 @@ function FloatingItem({
     left: number;
     top: number;
     moved: boolean;
+    document: MapContent;
   } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  function cancel() {
+    if (!drag.current) return;
+    drag.current = null;
+    if (ref.current) {
+      ref.current.style.left = `${x}px`;
+      ref.current.style.top = `${y}px`;
+      ref.current.parentElement?.dispatchEvent(new Event("floatingmove"));
+    }
+  }
+  useLayoutEffect(cancel, [zoom]);
+  useLayoutEffect(() => {
+    if (drag.current && drag.current.document !== getDocument()) cancel();
+  });
+  useEffect(() => {
+    window.addEventListener("blur", cancel);
+    window.addEventListener("wheel", cancel, true);
+    return () => {
+      window.removeEventListener("blur", cancel);
+      window.removeEventListener("wheel", cancel, true);
+    };
+  }, [x, y, zoom]);
   function move(event: React.PointerEvent<HTMLDivElement>) {
     const start = drag.current;
     if (!start || start.id !== event.pointerId || !ref.current) return;
+    if (start.document !== getDocument()) {
+      cancel();
+      return;
+    }
     if (
       !start.moved &&
       Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5
@@ -88,25 +117,24 @@ function FloatingItem({
           left: x,
           top: y,
           moved: false,
+          document: getDocument(),
         };
       }}
       onPointerMove={move}
       onPointerUp={(event) => {
         const start = drag.current;
         if (!start || start.id !== event.pointerId) return;
+        if (start.document !== getDocument()) {
+          cancel();
+          return;
+        }
         drag.current = null;
         const left = parseFloat(ref.current?.style.left || "0"),
           top = parseFloat(ref.current?.style.top || "0");
         if (start.moved && (left !== x || top !== y)) onMove(left, top);
       }}
-      onPointerCancel={() => {
-        drag.current = null;
-        if (ref.current) {
-          ref.current.style.left = `${x}px`;
-          ref.current.style.top = `${y}px`;
-          ref.current.parentElement?.dispatchEvent(new Event("floatingmove"));
-        }
-      }}
+      onPointerCancel={cancel}
+      onLostPointerCapture={cancel}
       onDoubleClick={(event) => {
         if (
           event.target instanceof Element &&
@@ -174,6 +202,7 @@ export default function FloatingLayer({
   notes,
   node,
   zoom,
+  getDocument,
   noteFocus,
   fontSize,
   onNoteFocus,
@@ -205,6 +234,7 @@ export default function FloatingLayer({
         ))}
       {notes.map((note) => (
         <FloatingItem
+          getDocument={getDocument}
           key={note.key}
           x={note.x}
           y={note.y}

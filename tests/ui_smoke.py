@@ -174,6 +174,9 @@ def run():
             script("document.querySelector('.tab-open').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
             wait_for(lambda: script("return !!document.querySelector('.tab-rename')"), 'tab rename before close')
             keys('.tab-rename', '\ue009a\ue000Uncommitted title')
+            for composition in [{'isComposing': True}, {'keyCode': 229}]:
+                script("document.querySelector('.tab-rename').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true,...arguments[0]}))", composition)
+                assert script("return document.querySelector('.tab-rename')?.value") == 'Uncommitted title', 'IME candidate confirmation keeps tab rename active'
             keys('.tab-rename', '\ue009+\ue000')
             wait_for(lambda: script("return document.querySelector('.map').dataset.zoom") == '1.1', 'Ctrl plus while renaming a tab')
             keys('.tab-rename', '\ue009-\ue000')
@@ -819,6 +822,34 @@ def run():
             keys('.tab-rename', '\ue009a\ue000Named tab')
             keys('.tab-rename', '\ue009s\ue000')
             wait_for(lambda: script("return !!window.__miniTest.saved && !document.querySelector('.tab-rename')"), 'save commits tab rename')
+            script("document.querySelector('.tab.active .tab-open').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+            keys('.tab-rename', '\ue009a\ue000Gesture tab')
+            for reason in ['blur', 'capture', 'zoom']:
+                coords = script("const c=document.querySelector('.canvas'), r=c.getBoundingClientRect(); c.addEventListener('pointerdown',e=>window.__miniTest.pointer=e.pointerId,{once:true}); return [Math.round(r.left+12),Math.round(r.top+12)]")
+                x, y = coords
+                request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
+                    {"type": "pointerMove", "duration": 0, "x": x, "y": y}, {"type": "pointerDown", "button": 0},
+                    {"type": "pointerMove", "duration": 150, "x": x+35, "y": y+35}]}]})
+                wait_for(lambda: script("return !!document.querySelector('.selection-box')"), 'first marquee survives a rename committed by blur')
+                assert script("return document.querySelector('.tab.active .tab-open').textContent.trim()") == 'Gesture tab'
+                zoom_before = script("return Number(document.querySelector('.map').dataset.zoom)")
+                key = '+' if zoom_before < 1.9 else '-'
+                if reason == 'blur':
+                    script("window.dispatchEvent(new Event('blur'))")
+                elif reason == 'capture':
+                    script("document.querySelector('.canvas').releasePointerCapture(window.__miniTest.pointer)")
+                else:
+                    script("window.dispatchEvent(new KeyboardEvent('keydown',{key:arguments[0],ctrlKey:true,bubbles:true,cancelable:true}))", key)
+                request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
+                    {"type": "pointerMove", "duration": 100, "x": x+50, "y": y+50}]}]})
+                wait_for(lambda: not script("return !!document.querySelector('.selection-box')"), f'{reason} cancels marquee before pointer release')
+                request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [{"type": "pointerUp", "button": 0}]}]})
+                if reason == 'zoom':
+                    script("window.dispatchEvent(new KeyboardEvent('keydown',{key:arguments[0],ctrlKey:true,bubbles:true,cancelable:true}))", '-' if key == '+' else '+')
+            script("window.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true}))")
+            wait_for(lambda: script("return document.querySelector('.tab.active .tab-open').textContent.trim()") == 'Named tab', 'undo gesture test rename')
+            keys(editor, '\ue009s\ue000')
+            wait_for(lambda: not script("return !!document.querySelector('.tab.active .tab-dirty')"), 'save original title after gesture regression')
             with zipfile.ZipFile(BytesIO(base64.b64decode(script("return window.__miniTest.saved")))) as archive:
                 manifest = json.loads(archive.read('manifest.json'))
                 assert json.loads(archive.read(manifest['maps'][0]))['tree']['tabTitle'] == 'Named tab'
@@ -947,6 +978,19 @@ def run():
                 script("document.activeElement?.blur()")
                 before = script("""const el = document.querySelector(arguments[0]), card=el.matches('.floating-topic') ? el.querySelector(':scope > .node-row > .node') : el;
                   const r=card.getBoundingClientRect(); return [el.style.left, el.style.top, Math.round(r.left+r.width/2), Math.round(r.top+r.height/2)];""", selector)
+                if selector == '.floating-note':
+                    script("document.activeElement?.blur()")
+                    note_before = script("const e=document.querySelector('.floating-note'), r=e.getBoundingClientRect(); return [e.style.left,e.style.top,Math.round(r.left+r.width/2),Math.round(r.top+r.height/2)]")
+                    assert script("return !!document.elementFromPoint(arguments[0],arguments[1])?.closest('.floating-note')", note_before[2], note_before[3]), 'note drag starts on an unobscured card'
+                    request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
+                        {"type": "pointerMove", "duration": 0, "x": note_before[2], "y": note_before[3]}, {"type": "pointerDown", "button": 0},
+                        {"type": "pointerMove", "duration": 150, "x": note_before[2]+25, "y": note_before[3]+20}]}]})
+                    wait_for(lambda: script("const e=document.querySelector('.floating-note'); return [e.style.left,e.style.top]") != note_before[:2], 'floating note drag preview')
+                    script("window.dispatchEvent(new Event('blur'))")
+                    wait_for(lambda: script("const e=document.querySelector('.floating-note'); return [e.style.left,e.style.top]") == note_before[:2], 'blur restores the floating note preview')
+                    request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
+                        {"type": "pointerMove", "duration": 100, "x": note_before[2]+45, "y": note_before[3]+35}, {"type": "pointerUp", "button": 0}]}]})
+                    assert script("const e=document.querySelector('.floating-note'); return [e.style.left,e.style.top]") == note_before[:2], 'cancelled note drag cannot commit on release'
                 end_x, end_y = (50, script('return window.innerHeight-80')) if selector == '.floating-topic' else (before[2] + 30, before[3] + 20)
                 request(api + '/actions', {"actions": [{"type": "pointer", "id": "mouse", "parameters": {"pointerType": "mouse"}, "actions": [
                     {"type": "pointerMove", "duration": 0, "x": before[2], "y": before[3]}, {"type": "pointerDown", "button": 0},

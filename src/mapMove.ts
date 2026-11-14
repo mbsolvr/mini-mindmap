@@ -45,7 +45,9 @@ export function moveMapTopics(
   onEmptySummary?: () => void,
   onSummaryConflict?: () => void,
 ): MapContent {
-  const summaryKeys = new Set(map.tree.summaries?.map((summary) => summary.key));
+  const summaryKeys = new Set(
+    map.tree.summaries?.map((summary) => summary.key),
+  );
   if (
     !keys.length ||
     keys.includes(map.tree.key) ||
@@ -70,10 +72,15 @@ export function moveMapTopics(
         onEmptySummary?.();
         return map;
       }
-      kept.push(topics.length === summary.topics.length ? summary : { ...summary, topics });
+      kept.push(
+        topics.length === summary.topics.length
+          ? summary
+          : { ...summary, topics },
+      );
     }
     const settled = settleSummaries(
-      kept.length === summaries.length && kept.every((summary, index) => summary === summaries[index])
+      kept.length === summaries.length &&
+        kept.every((summary, index) => summary === summaries[index])
         ? next
         : { ...next, tree: { ...next.tree, summaries: kept } },
     );

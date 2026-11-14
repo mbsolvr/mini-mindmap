@@ -127,13 +127,16 @@ export function useExports({
       const { contents, limited } = await createXmind(workspaceRef.current);
       if (await invoke("export_file", { format: "xmind", data: contents })) {
         setStatus("XMind exported");
-        if (limited) setError("Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.");
+        if (limited)
+          setError(
+            "Some summaries or connection curves use Mini Mindmap extensions and may look different in XMind.",
+          );
       }
     } catch (cause) {
       setError(`XMind export failed: ${String(cause)}`);
     } finally {
       working(false);
-      setEpoch(value => value + 1);
+      setEpoch((value) => value + 1);
     }
   }
   useEffect(() => {

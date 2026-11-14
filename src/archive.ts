@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import { parseDocument } from "./model.ts";
 import type { MapContent, MindNode } from "./types.ts";
-import { MAX_IMAGE_BYTES, validateTabCount } from "./limits.ts";
+import { MAX_IMAGE_BYTES, validateFileTabCount } from "./limits.ts";
 import { openZip, MAX_ARCHIVE_BYTES, MAX_ENTRIES, TOO_LARGE } from "./zip.ts";
 import { checkParseBudget } from "./parseBudget.ts";
 
@@ -134,7 +134,9 @@ export async function readArchive(contents: string): Promise<string> {
     new Set(manifest.maps).size !== manifest.maps.length
   )
     throw new Error(INVALID);
-  validateTabCount(manifest.maps.length);
+  validateFileTabCount(manifest.maps.length);
+  // Only the known manifest wrapper is absent from a single-map document.
+  if (manifest.type === "map") parseBudget.count -= 2;
   const assets = new Map<string, Promise<string>>();
   async function readNode(node: MindNode): Promise<MindNode> {
     const children = await Promise.all(node.children.map(readNode));
@@ -149,7 +151,9 @@ export async function readArchive(contents: string): Promise<string> {
       source = read(path, MAX_IMAGE_BYTES).then((data) => {
         let binary = "";
         for (let offset = 0; offset < data.length; offset += 8192)
-          binary += String.fromCharCode(...data.subarray(offset, offset + 8192));
+          binary += String.fromCharCode(
+            ...data.subarray(offset, offset + 8192),
+          );
         return `data:image/${mediaTypes[match[1]]};base64,${btoa(binary)}`;
       });
       assets.set(path, source);

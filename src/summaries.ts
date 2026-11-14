@@ -9,12 +9,19 @@ import {
 } from "./model.ts";
 import { hasSummaryOverlap, summaryIndex } from "./summaryConflicts.ts";
 
-export function prepareSummaryTopics(map: MapContent, topics: string[]): string[] | null {
+export function prepareSummaryTopics(
+  map: MapContent,
+  topics: string[],
+): string[] | null {
   topics = topics.filter((key) => key !== map.tree.key);
   const index = summaryIndex(map);
   const normalized = index.normalize(topics);
-  if (normalized.length < 2 || index.oppositeSides(normalized) ||
-      hasSummaryOverlap(map, topics) || hasSummaryOverlap(map, normalized))
+  if (
+    normalized.length < 2 ||
+    index.oppositeSides(normalized) ||
+    hasSummaryOverlap(map, topics) ||
+    hasSummaryOverlap(map, normalized)
+  )
     return null;
   return normalized;
 }
@@ -22,7 +29,10 @@ export function prepareSummaryTopics(map: MapContent, topics: string[]): string[
 export function hasSummaryConflict(map: MapContent): boolean {
   if (!map.tree.summaries?.length) return false;
   const index = summaryIndex(map);
-  return hasSummaryOverlap(map) || map.tree.summaries.some((summary) => index.oppositeSides(summary.topics));
+  return (
+    hasSummaryOverlap(map) ||
+    map.tree.summaries.some((summary) => index.oppositeSides(summary.topics))
+  );
 }
 
 export function settleSummaries(map: MapContent): MapContent | null {
@@ -31,12 +41,15 @@ export function settleSummaries(map: MapContent): MapContent | null {
   const index = summaryIndex(map);
   const normalized = summaries.map((summary) => {
     const topics = index.normalize(summary.topics, false);
-    return topics.length === summary.topics.length && topics.every((key, n) => key === summary.topics[n])
-      ? summary : { ...summary, topics };
+    return topics.length === summary.topics.length &&
+      topics.every((key, n) => key === summary.topics[n])
+      ? summary
+      : { ...summary, topics };
   });
   if (normalized.some((summary) => !summary.topics.length)) return null;
   const next = normalized.every((summary, n) => summary === summaries[n])
-    ? map : { ...map, tree: { ...map.tree, summaries: normalized } };
+    ? map
+    : { ...map, tree: { ...map.tree, summaries: normalized } };
   return alignSummaryLevels(next);
 }
 
@@ -129,7 +142,12 @@ export function alignSummaryLevels(map: MapContent): MapContent {
     const topic = sourceTree && findNode(sourceTree, summary.key);
     if (!sourceTree || !targetTree || !topic || containsNode(topic, target))
       continue;
-    if (nodeDepth(result, target) + treeIndex(sourceTree).get(summary.key)!.height > 100) continue;
+    if (
+      nodeDepth(result, target) +
+        treeIndex(sourceTree).get(summary.key)!.height >
+      100
+    )
+      continue;
     const parent = findParent(targetTree, target);
     if (!parent && targetTree === result.tree) continue;
     function remove(node: MindNode): MindNode {

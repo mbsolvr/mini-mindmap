@@ -239,7 +239,9 @@ export function useTopicActions({
     } else if (isPlainEnter(event)) {
       event.preventDefault();
       if (!event.repeat)
-        event.currentTarget.closest<HTMLElement>(".node")?.focus({ preventScroll: true });
+        event.currentTarget
+          .closest<HTMLElement>(".node")
+          ?.focus({ preventScroll: true });
     } else if (deletesImage(findNode(tree, key), event)) {
       event.preventDefault();
       changeTree(key, (node) => {

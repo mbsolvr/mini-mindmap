@@ -4,6 +4,8 @@ Use **File → Import XMind…** to append every sheet in an `.xmind` workbook a
 
 Use **File → Export XMind…** to export all tabs, including the active tab selection, as a modern JSON-based XMind workbook. Export does not change the save destination or mark the native document saved. The backend uses the same atomic replacement and current-file overwrite protection as other exports.
 
+XMind import and export support up to 100 sheets. Larger legacy workspaces can still be saved in the native `.minimap` format.
+
 ## Native `.minimap` container
 
 The existing split format remains the native format. A single map and a multi-tab workspace use the same map representation:

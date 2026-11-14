@@ -8,6 +8,8 @@ test("plain Enter excludes modifiers and IME composition", () => {
   assert.equal(isPlainEnter({ key: "Enter", shiftKey: true }), false);
   assert.equal(isPlainEnter({ key: "Enter", nativeEvent: { isComposing: true } }), false);
   assert.equal(isPlainEnter({ key: "Enter", ctrlKey: true }), false);
+  assert.equal(isPlainEnter({ key: "Enter", keyCode: 229 }), false);
+  assert.equal(isPlainEnter({ key: "Enter", nativeEvent: { keyCode: 229 } }), false);
 });
 
 test("keyboard navigation respects hierarchy and collapsed branches", () => {
