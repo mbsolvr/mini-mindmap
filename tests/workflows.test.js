@@ -6,7 +6,7 @@ test('workflows do not persist checkout credentials', async () => {
   const directory = new URL('../.github/workflows/', import.meta.url);
   for (const name of await readdir(directory)) {
     if (!/\.ya?ml$/.test(name)) continue;
-    const source = await readFile(new URL(name, directory), 'utf8');
+    const source = (await readFile(new URL(name, directory), 'utf8')).replaceAll('\r\n', '\n');
     const actions = [...source.matchAll(/^\s*- uses: (\S+)(?:[^\n]*)/gm)];
     assert.ok(actions.length);
     for (const action of actions) {
